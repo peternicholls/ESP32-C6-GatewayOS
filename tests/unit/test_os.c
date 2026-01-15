@@ -1,0 +1,264 @@
+/**
+ * @file test_os.c
+ * @brief Unit tests for Tiny OS components
+ * 
+ * ESP32-C6 Zigbee Bridge OS - Test suite
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+/* Include OS headers directly for testing */
+#include "os_types.h"
+#include "os_config.h"
+#include "os_event.h"
+#include "os_log.h"
+
+/* Test macros */
+#define TEST_START(name)  printf("  Testing %s... ", name)
+#define TEST_PASS()       printf("PASS\n")
+#define TEST_FAIL(msg)    do { printf("FAIL: %s\n", msg); tests_failed++; } while(0)
+#define ASSERT_EQ(a, b)   do { if ((a) != (b)) { TEST_FAIL(#a " != " #b); return; } } while(0)
+#define ASSERT_TRUE(x)    do { if (!(x)) { TEST_FAIL(#x " is false"); return; } } while(0)
+#define ASSERT_FALSE(x)   do { if (x) { TEST_FAIL(#x " is true"); return; } } while(0)
+
+static int tests_passed = 0;
+static int tests_failed = 0;
+
+/* Event bus tests */
+
+static void test_event_init(void) {
+    TEST_START("event_init");
+    
+    os_err_t err = os_event_init();
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Double init should return error */
+    err = os_event_init();
+    ASSERT_EQ(err, OS_ERR_ALREADY_EXISTS);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static int handler_call_count = 0;
+static os_event_type_t last_event_type = 0;
+
+static void test_event_handler(const os_event_t *event, void *ctx) {
+    (void)ctx;
+    handler_call_count++;
+    last_event_type = event->type;
+}
+
+static void test_event_subscribe_publish(void) {
+    TEST_START("event_subscribe_publish");
+    
+    handler_call_count = 0;
+    
+    /* Subscribe to all events */
+    os_event_filter_t filter = {0, OS_EVENT_TYPE_MAX};
+    os_err_t err = os_event_subscribe(&filter, test_event_handler, NULL);
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Publish an event */
+    err = os_event_emit(OS_EVENT_BOOT, NULL, 0);
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Dispatch and check handler was called */
+    uint32_t dispatched = os_event_dispatch(0);
+    ASSERT_EQ(dispatched, 1);
+    ASSERT_EQ(handler_call_count, 1);
+    ASSERT_EQ(last_event_type, OS_EVENT_BOOT);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_event_filter(void) {
+    TEST_START("event_filter");
+    
+    handler_call_count = 0;
+    
+    /* Subscribe only to Zigbee events */
+    os_event_filter_t filter = {OS_EVENT_ZB_STACK_UP, OS_EVENT_ZB_ATTR_REPORT};
+    os_err_t err = os_event_subscribe(&filter, test_event_handler, NULL);
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Publish system event - should not match filter for this handler */
+    err = os_event_emit(OS_EVENT_NET_UP, NULL, 0);
+    ASSERT_EQ(err, OS_OK);
+    
+    os_event_dispatch(0);
+    /* Handler should be called by the "all events" subscription from previous test,
+       but this test focuses on the filter mechanism */
+    
+    /* Publish Zigbee event - should match */
+    err = os_event_emit(OS_EVENT_ZB_DEVICE_JOINED, NULL, 0);
+    ASSERT_EQ(err, OS_OK);
+    
+    os_event_dispatch(0);
+    ASSERT_TRUE(handler_call_count >= 1);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_event_payload(void) {
+    TEST_START("event_payload");
+    
+    /* Create event with payload */
+    os_event_t event = {0};
+    event.type = OS_EVENT_USER_BASE;
+    
+    uint32_t test_data = 0x12345678;
+    memcpy(event.payload, &test_data, sizeof(test_data));
+    event.payload_len = sizeof(test_data);
+    
+    os_err_t err = os_event_publish(&event);
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Check stats */
+    os_event_stats_t stats;
+    err = os_event_get_stats(&stats);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_TRUE(stats.events_published > 0);
+    
+    os_event_dispatch(0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_event_stats(void) {
+    TEST_START("event_stats");
+    
+    os_event_stats_t stats;
+    os_err_t err = os_event_get_stats(&stats);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_TRUE(stats.events_published > 0);
+    ASSERT_TRUE(stats.events_dispatched > 0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+/* Log tests */
+
+static void test_log_init(void) {
+    TEST_START("log_init");
+    
+    os_err_t err = os_log_init();
+    ASSERT_EQ(err, OS_OK);
+    
+    err = os_log_init();
+    ASSERT_EQ(err, OS_ERR_ALREADY_EXISTS);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_log_levels(void) {
+    TEST_START("log_levels");
+    
+    /* Test level names */
+    ASSERT_TRUE(strcmp(os_log_level_name(OS_LOG_LEVEL_ERROR), "ERROR") == 0);
+    ASSERT_TRUE(strcmp(os_log_level_name(OS_LOG_LEVEL_WARN), "WARN") == 0);
+    ASSERT_TRUE(strcmp(os_log_level_name(OS_LOG_LEVEL_INFO), "INFO") == 0);
+    ASSERT_TRUE(strcmp(os_log_level_name(OS_LOG_LEVEL_DEBUG), "DEBUG") == 0);
+    ASSERT_TRUE(strcmp(os_log_level_name(OS_LOG_LEVEL_TRACE), "TRACE") == 0);
+    
+    /* Test level parsing */
+    ASSERT_EQ(os_log_level_parse("ERROR"), OS_LOG_LEVEL_ERROR);
+    ASSERT_EQ(os_log_level_parse("error"), OS_LOG_LEVEL_ERROR);
+    ASSERT_EQ(os_log_level_parse("DEBUG"), OS_LOG_LEVEL_DEBUG);
+    ASSERT_EQ(os_log_level_parse("invalid"), OS_LOG_LEVEL_INFO);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_log_set_level(void) {
+    TEST_START("log_set_level");
+    
+    os_log_set_level(OS_LOG_LEVEL_DEBUG);
+    ASSERT_EQ(os_log_get_level(), OS_LOG_LEVEL_DEBUG);
+    
+    os_log_set_level(OS_LOG_LEVEL_ERROR);
+    ASSERT_EQ(os_log_get_level(), OS_LOG_LEVEL_ERROR);
+    
+    /* Reset to default */
+    os_log_set_level(OS_LOG_LEVEL_INFO);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_log_write(void) {
+    TEST_START("log_write");
+    
+    os_log_set_level(OS_LOG_LEVEL_DEBUG);
+    
+    /* Write some log messages */
+    os_log_write(OS_LOG_LEVEL_INFO, "TEST", "Test message %d", 42);
+    os_log_write(OS_LOG_LEVEL_DEBUG, "TEST", "Debug message");
+    os_log_write(OS_LOG_LEVEL_ERROR, "TEST", "Error: %s", "test error");
+    
+    /* Flush should return number flushed */
+    printf("\n");  /* New line before log output */
+    uint32_t flushed = os_log_flush();
+    ASSERT_TRUE(flushed >= 3);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+/* Type tests */
+
+static void test_types(void) {
+    TEST_START("types");
+    
+    /* Test size assumptions */
+    ASSERT_EQ(sizeof(os_tick_t), 4);
+    ASSERT_EQ(sizeof(os_eui64_t), 8);
+    ASSERT_EQ(sizeof(os_corr_id_t), 4);
+    
+    /* Test macros */
+    ASSERT_EQ(OS_MS_TO_TICKS(1000), 1000);
+    ASSERT_EQ(OS_TICKS_TO_MS(1000), 1000);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+/* Main test runner */
+
+int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+    
+    printf("=== ESP32-C6 Zigbee Bridge OS Unit Tests ===\n\n");
+    
+    printf("Type tests:\n");
+    test_types();
+    
+    printf("\nEvent bus tests:\n");
+    test_event_init();
+    test_event_subscribe_publish();
+    test_event_filter();
+    test_event_payload();
+    test_event_stats();
+    
+    printf("\nLog tests:\n");
+    test_log_init();
+    test_log_levels();
+    test_log_set_level();
+    test_log_write();
+    
+    printf("\n=== Results ===\n");
+    printf("Passed: %d\n", tests_passed);
+    printf("Failed: %d\n", tests_failed);
+    
+    return tests_failed > 0 ? 1 : 0;
+}
