@@ -61,8 +61,8 @@ ESP32-Zigbee-Bridge/
 │   │   ├── include/
 │   │   ├── capability.c
 │   │   ├── light_capability.c # Light control
-│   │   ├── switch_capability.c# Switch control
-│   │   └── sensor_capability.c# Sensor reading
+│   │   ├── switch_capability.c # Switch control
+│   │   └── sensor_capability.c # Sensor reading
 │   └── mqtt_bridge/           # MQTT northbound interface
 │       ├── include/
 │       └── mqtt_bridge.c

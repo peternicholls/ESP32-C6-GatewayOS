@@ -2,6 +2,7 @@
 #include "logger.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_heap_caps.h"
 #include <stdio.h>
 #include <string.h>
 
