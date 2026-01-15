@@ -154,6 +154,12 @@ os_err_t reg_restore(void);
  */
 const char *reg_state_name(reg_state_t state);
 
+/**
+ * @brief Initialize registry shell commands
+ * @return OS_OK on success
+ */
+os_err_t reg_shell_init(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -17,6 +17,8 @@
 #include "os_log.h"
 #include "os_persist.h"
 #include "registry.h"
+#include "interview.h"
+#include "capability.h"
 
 /* Test macros */
 #define TEST_START(name)  printf("  Testing %s... ", name)
@@ -472,7 +474,102 @@ static void test_reg_remove_node(void) {
     TEST_PASS();
 }
 
-/* Main test runner */
+/* Interview tests */
+
+static void test_interview_init(void) {
+    TEST_START("interview_init");
+    
+    os_err_t err = interview_init();
+    ASSERT_EQ(err, OS_OK);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_interview_start(void) {
+    TEST_START("interview_start");
+    
+    /* First add a node */
+    os_eui64_t addr = 0xAABBCCDDEEFF0011;
+    reg_node_t *node = reg_add_node(addr, 0x5678);
+    ASSERT_TRUE(node != NULL);
+    
+    /* Start interview */
+    os_err_t err = interview_start(addr);
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Check stage */
+    interview_stage_t stage = interview_get_stage(addr);
+    ASSERT_EQ(stage, INTERVIEW_STAGE_INIT);
+    
+    /* Node should be in interviewing state */
+    ASSERT_EQ(node->state, REG_STATE_INTERVIEWING);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+/* Capability tests */
+
+static void test_cap_init(void) {
+    TEST_START("cap_init");
+    
+    os_err_t err = cap_init();
+    ASSERT_EQ(err, OS_OK);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_cap_compute(void) {
+    TEST_START("cap_compute");
+    
+    os_eui64_t addr = 0xAABBCCDDEEFF0011;
+    reg_node_t *node = reg_find_node(addr);
+    ASSERT_TRUE(node != NULL);
+    
+    /* Add some clusters */
+    reg_endpoint_t *ep = reg_add_endpoint(node, 1, 0x0104, 0x0100);
+    ASSERT_TRUE(ep != NULL);
+    
+    reg_add_cluster(ep, 0x0006, REG_CLUSTER_SERVER);  /* OnOff */
+    reg_add_cluster(ep, 0x0008, REG_CLUSTER_SERVER);  /* Level */
+    
+    /* Compute capabilities */
+    uint32_t caps = cap_compute_for_node(node);
+    ASSERT_TRUE(caps >= 2);  /* At least OnOff and Level */
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_cap_get_info(void) {
+    TEST_START("cap_get_info");
+    
+    const cap_info_t *info = cap_get_info(CAP_LIGHT_ON);
+    ASSERT_TRUE(info != NULL);
+    ASSERT_TRUE(strcmp(info->name, "light.on") == 0);
+    ASSERT_EQ(info->type, CAP_VALUE_BOOL);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_cap_parse_name(void) {
+    TEST_START("cap_parse_name");
+    
+    cap_id_t id = cap_parse_name("light.on");
+    ASSERT_EQ(id, CAP_LIGHT_ON);
+    
+    id = cap_parse_name("sensor.temperature");
+    ASSERT_EQ(id, CAP_SENSOR_TEMPERATURE);
+    
+    id = cap_parse_name("nonexistent");
+    ASSERT_EQ(id, CAP_UNKNOWN);
+    
+    tests_passed++;
+    TEST_PASS();
+}
 
 int main(int argc, char *argv[]) {
     (void)argc;
@@ -513,6 +610,16 @@ int main(int argc, char *argv[]) {
     test_reg_update_attribute();
     test_reg_set_state();
     test_reg_remove_node();
+    
+    printf("\nInterview tests:\n");
+    test_interview_init();
+    test_interview_start();
+    
+    printf("\nCapability tests:\n");
+    test_cap_init();
+    test_cap_compute();
+    test_cap_get_info();
+    test_cap_parse_name();
     
     printf("\n=== Results ===\n");
     printf("Passed: %d\n", tests_passed);

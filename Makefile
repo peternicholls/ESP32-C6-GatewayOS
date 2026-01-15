@@ -21,7 +21,11 @@ OS_SRCS = os/src/os.c \
           os/src/os_persist.c
 
 SVC_SRCS = services/src/registry.c \
-           services/src/reg_shell.c
+           services/src/reg_shell.c \
+           services/src/interview.c \
+           services/src/capability.c
+
+ADAPT_SRCS = adapters/src/mqtt_adapter.c
 
 APP_SRCS = apps/src/app_blink.c
 
@@ -32,6 +36,7 @@ TEST_SRCS = tests/unit/test_os.c
 # Object files
 OS_OBJS = $(OS_SRCS:.c=.o)
 SVC_OBJS = $(SVC_SRCS:.c=.o)
+ADAPT_OBJS = $(ADAPT_SRCS:.c=.o)
 APP_OBJS = $(APP_SRCS:.c=.o)
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 TEST_OBJS = $(TEST_SRCS:.c=.o)
@@ -47,12 +52,12 @@ LIBS = -lpthread
 
 all: $(MAIN_TARGET)
 
-$(MAIN_TARGET): $(OS_OBJS) $(SVC_OBJS) $(APP_OBJS) $(MAIN_OBJS)
+$(MAIN_TARGET): $(OS_OBJS) $(SVC_OBJS) $(ADAPT_OBJS) $(APP_OBJS) $(MAIN_OBJS)
 	@mkdir -p build
 	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
 	@echo "Built: $@"
 
-$(TEST_TARGET): $(TEST_OBJS) os/src/os_event.o os/src/os_log.o os/src/os_fibre.o os/src/os_persist.o services/src/registry.o
+$(TEST_TARGET): $(TEST_OBJS) os/src/os_event.o os/src/os_log.o os/src/os_fibre.o os/src/os_persist.o services/src/registry.o services/src/interview.o services/src/capability.o
 	@mkdir -p build
 	$(CC) $(CFLAGS) $^ -o $@
 	@echo "Built: $@"
@@ -71,7 +76,7 @@ run: $(MAIN_TARGET)
 	@./$(MAIN_TARGET)
 
 clean:
-	rm -f $(OS_OBJS) $(SVC_OBJS) $(APP_OBJS) $(MAIN_OBJS) $(TEST_OBJS)
+	rm -f $(OS_OBJS) $(SVC_OBJS) $(ADAPT_OBJS) $(APP_OBJS) $(MAIN_OBJS) $(TEST_OBJS)
 	rm -rf build/
 	@echo "Cleaned"
 
@@ -85,6 +90,9 @@ os/src/os_shell.o: os/include/os_shell.h os/include/os_types.h os/include/os_con
 os/src/os_persist.o: os/include/os_persist.h os/include/os_types.h os/include/os_config.h
 services/src/registry.o: services/include/registry.h services/include/reg_types.h os/include/os.h
 services/src/reg_shell.o: services/include/registry.h os/include/os.h
+services/src/interview.o: services/include/interview.h services/include/registry.h os/include/os.h
+services/src/capability.o: services/include/capability.h services/include/registry.h os/include/os.h
+adapters/src/mqtt_adapter.o: adapters/include/mqtt_adapter.h services/include/capability.h os/include/os.h
 apps/src/app_blink.o: apps/src/app_blink.h os/include/os.h
 main/src/main.o: os/include/os.h apps/src/app_blink.h
 tests/unit/test_os.o: os/include/os_types.h os/include/os_event.h os/include/os_log.h

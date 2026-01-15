@@ -7,6 +7,9 @@
 
 #include "os.h"
 #include "registry.h"
+#include "interview.h"
+#include "capability.h"
+#include "mqtt_adapter.h"
 #include "app_blink.h"
 #include <stdio.h>
 #include <signal.h>
@@ -80,8 +83,25 @@ int main(int argc, char *argv[]) {
         LOG_E(MAIN_MODULE, "Registry init failed: %d", err);
     }
     
+    /* Initialize interview service */
+    err = interview_init();
+    if (err != OS_OK) {
+        LOG_E(MAIN_MODULE, "Interview init failed: %d", err);
+    }
+    
+    /* Initialize capability service */
+    err = cap_init();
+    if (err != OS_OK) {
+        LOG_E(MAIN_MODULE, "Capability init failed: %d", err);
+    }
+    
+    /* Initialize MQTT adapter */
+    err = mqtt_init(NULL);
+    if (err != OS_OK) {
+        LOG_E(MAIN_MODULE, "MQTT init failed: %d", err);
+    }
+    
     /* Initialize registry shell commands */
-    extern os_err_t reg_shell_init(void);
     reg_shell_init();
     
     /* Create application fibres */
@@ -98,6 +118,16 @@ int main(int argc, char *argv[]) {
     err = os_fibre_create(dispatcher_task, NULL, "dispatch", 2048, NULL);
     if (err != OS_OK) {
         LOG_E(MAIN_MODULE, "Failed to create dispatcher task: %d", err);
+    }
+    
+    err = os_fibre_create(interview_task, NULL, "interview", 2048, NULL);
+    if (err != OS_OK) {
+        LOG_E(MAIN_MODULE, "Failed to create interview task: %d", err);
+    }
+    
+    err = os_fibre_create(mqtt_task, NULL, "mqtt", 2048, NULL);
+    if (err != OS_OK) {
+        LOG_E(MAIN_MODULE, "Failed to create mqtt task: %d", err);
     }
     
     LOG_I(MAIN_MODULE, "Created %u fibres", os_fibre_count());
