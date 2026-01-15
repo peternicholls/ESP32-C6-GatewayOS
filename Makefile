@@ -20,6 +20,9 @@ OS_SRCS = os/src/os.c \
           os/src/os_shell.c \
           os/src/os_persist.c
 
+SVC_SRCS = services/src/registry.c \
+           services/src/reg_shell.c
+
 APP_SRCS = apps/src/app_blink.c
 
 MAIN_SRCS = main/src/main.c
@@ -28,6 +31,7 @@ TEST_SRCS = tests/unit/test_os.c
 
 # Object files
 OS_OBJS = $(OS_SRCS:.c=.o)
+SVC_OBJS = $(SVC_SRCS:.c=.o)
 APP_OBJS = $(APP_SRCS:.c=.o)
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 TEST_OBJS = $(TEST_SRCS:.c=.o)
@@ -43,12 +47,12 @@ LIBS = -lpthread
 
 all: $(MAIN_TARGET)
 
-$(MAIN_TARGET): $(OS_OBJS) $(APP_OBJS) $(MAIN_OBJS)
+$(MAIN_TARGET): $(OS_OBJS) $(SVC_OBJS) $(APP_OBJS) $(MAIN_OBJS)
 	@mkdir -p build
 	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
 	@echo "Built: $@"
 
-$(TEST_TARGET): $(TEST_OBJS) os/src/os_event.o os/src/os_log.o os/src/os_fibre.o os/src/os_persist.o
+$(TEST_TARGET): $(TEST_OBJS) os/src/os_event.o os/src/os_log.o os/src/os_fibre.o os/src/os_persist.o services/src/registry.o
 	@mkdir -p build
 	$(CC) $(CFLAGS) $^ -o $@
 	@echo "Built: $@"
@@ -67,7 +71,7 @@ run: $(MAIN_TARGET)
 	@./$(MAIN_TARGET)
 
 clean:
-	rm -f $(OS_OBJS) $(APP_OBJS) $(MAIN_OBJS) $(TEST_OBJS)
+	rm -f $(OS_OBJS) $(SVC_OBJS) $(APP_OBJS) $(MAIN_OBJS) $(TEST_OBJS)
 	rm -rf build/
 	@echo "Cleaned"
 
@@ -79,6 +83,8 @@ os/src/os_log.o: os/include/os_log.h os/include/os_types.h os/include/os_config.
 os/src/os_console.o: os/include/os_console.h os/include/os_types.h os/include/os_config.h
 os/src/os_shell.o: os/include/os_shell.h os/include/os_types.h os/include/os_config.h
 os/src/os_persist.o: os/include/os_persist.h os/include/os_types.h os/include/os_config.h
+services/src/registry.o: services/include/registry.h services/include/reg_types.h os/include/os.h
+services/src/reg_shell.o: services/include/registry.h os/include/os.h
 apps/src/app_blink.o: apps/src/app_blink.h os/include/os.h
 main/src/main.o: os/include/os.h apps/src/app_blink.h
 tests/unit/test_os.o: os/include/os_types.h os/include/os_event.h os/include/os_log.h

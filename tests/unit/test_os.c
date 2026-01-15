@@ -16,6 +16,7 @@
 #include "os_event.h"
 #include "os_log.h"
 #include "os_persist.h"
+#include "registry.h"
 
 /* Test macros */
 #define TEST_START(name)  printf("  Testing %s... ", name)
@@ -327,6 +328,150 @@ static void test_persist_schema_version(void) {
     TEST_PASS();
 }
 
+/* Registry tests */
+
+static void test_reg_init(void) {
+    TEST_START("reg_init");
+    
+    os_err_t err = reg_init();
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_EQ(reg_node_count(), 0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_add_node(void) {
+    TEST_START("reg_add_node");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    uint16_t nwk = 0x1234;
+    
+    reg_node_t *node = reg_add_node(addr, nwk);
+    ASSERT_TRUE(node != NULL);
+    ASSERT_EQ(node->ieee_addr, addr);
+    ASSERT_EQ(node->nwk_addr, nwk);
+    ASSERT_EQ(node->state, REG_STATE_NEW);
+    ASSERT_EQ(reg_node_count(), 1);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_find_node(void) {
+    TEST_START("reg_find_node");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    
+    reg_node_t *node = reg_find_node(addr);
+    ASSERT_TRUE(node != NULL);
+    ASSERT_EQ(node->ieee_addr, addr);
+    
+    /* Find by network address */
+    node = reg_find_node_by_nwk(0x1234);
+    ASSERT_TRUE(node != NULL);
+    ASSERT_EQ(node->ieee_addr, addr);
+    
+    /* Not found */
+    node = reg_find_node(0xDEADBEEF);
+    ASSERT_TRUE(node == NULL);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_add_endpoint(void) {
+    TEST_START("reg_add_endpoint");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    reg_node_t *node = reg_find_node(addr);
+    ASSERT_TRUE(node != NULL);
+    
+    reg_endpoint_t *ep = reg_add_endpoint(node, 1, 0x0104, 0x0100);
+    ASSERT_TRUE(ep != NULL);
+    ASSERT_EQ(ep->endpoint_id, 1);
+    ASSERT_EQ(ep->profile_id, 0x0104);
+    ASSERT_EQ(node->endpoint_count, 1);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_add_cluster(void) {
+    TEST_START("reg_add_cluster");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    reg_node_t *node = reg_find_node(addr);
+    ASSERT_TRUE(node != NULL);
+    
+    reg_endpoint_t *ep = reg_find_endpoint(node, 1);
+    ASSERT_TRUE(ep != NULL);
+    
+    /* Add OnOff cluster */
+    reg_cluster_t *cl = reg_add_cluster(ep, 0x0006, REG_CLUSTER_SERVER);
+    ASSERT_TRUE(cl != NULL);
+    ASSERT_EQ(cl->cluster_id, 0x0006);
+    ASSERT_EQ(ep->cluster_count, 1);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_update_attribute(void) {
+    TEST_START("reg_update_attribute");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    reg_node_t *node = reg_find_node(addr);
+    reg_endpoint_t *ep = reg_find_endpoint(node, 1);
+    reg_cluster_t *cl = reg_find_cluster(ep, 0x0006);
+    ASSERT_TRUE(cl != NULL);
+    
+    /* Update OnOff attribute */
+    reg_attr_value_t value = {.b = true};
+    os_err_t err = reg_update_attribute(cl, 0x0000, REG_ATTR_TYPE_BOOL, &value);
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Read back */
+    reg_attribute_t *attr = reg_find_attribute(cl, 0x0000);
+    ASSERT_TRUE(attr != NULL);
+    ASSERT_EQ(attr->value.b, true);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_set_state(void) {
+    TEST_START("reg_set_state");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    reg_node_t *node = reg_find_node(addr);
+    ASSERT_TRUE(node != NULL);
+    
+    os_err_t err = reg_set_state(node, REG_STATE_READY);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_EQ(node->state, REG_STATE_READY);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_reg_remove_node(void) {
+    TEST_START("reg_remove_node");
+    
+    os_eui64_t addr = 0x00112233445566AA;
+    
+    os_err_t err = reg_remove_node(addr);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_EQ(reg_node_count(), 0);
+    
+    /* Should not find it anymore */
+    reg_node_t *node = reg_find_node(addr);
+    ASSERT_TRUE(node == NULL);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
 /* Main test runner */
 
 int main(int argc, char *argv[]) {
@@ -358,6 +503,16 @@ int main(int argc, char *argv[]) {
     test_persist_exists();
     test_persist_del();
     test_persist_schema_version();
+    
+    printf("\nRegistry tests:\n");
+    test_reg_init();
+    test_reg_add_node();
+    test_reg_find_node();
+    test_reg_add_endpoint();
+    test_reg_add_cluster();
+    test_reg_update_attribute();
+    test_reg_set_state();
+    test_reg_remove_node();
     
     printf("\n=== Results ===\n");
     printf("Passed: %d\n", tests_passed);

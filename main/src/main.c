@@ -6,6 +6,7 @@
  */
 
 #include "os.h"
+#include "registry.h"
 #include "app_blink.h"
 #include <stdio.h>
 #include <signal.h>
@@ -72,6 +73,16 @@ int main(int argc, char *argv[]) {
         printf("OS init failed: %d\n", err);
         return 1;
     }
+    
+    /* Initialize device registry */
+    err = reg_init();
+    if (err != OS_OK) {
+        LOG_E(MAIN_MODULE, "Registry init failed: %d", err);
+    }
+    
+    /* Initialize registry shell commands */
+    extern os_err_t reg_shell_init(void);
+    reg_shell_init();
     
     /* Create application fibres */
     err = os_fibre_create(os_shell_task, NULL, "shell", 4096, NULL);
