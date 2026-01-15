@@ -28,6 +28,8 @@
 #define PERSIST_DIR "/tmp/bridge_persist"
 #define SCHEMA_KEY "_schema_version"
 #define PATH_MAX_LEN 128
+/* Maximum filename length within path buffer (accounts for PERSIST_DIR + "/" + ".bin") */
+#define FILENAME_MAX_LEN (PATH_MAX_LEN - sizeof(PERSIST_DIR) - 6)
 
 /* Buffered write entry */
 typedef struct {
@@ -332,8 +334,12 @@ os_err_t os_persist_erase_all(void) {
         while ((entry = readdir(dir)) != NULL) {
             if (entry->d_name[0] != '.') {
                 char path[PATH_MAX_LEN];
-                snprintf(path, sizeof(path), "%s/%.64s", PERSIST_DIR, entry->d_name);
-                unlink(path);
+                /* Limit filename to prevent buffer overflow */
+                int written = snprintf(path, sizeof(path), "%s/%.*s", 
+                                       PERSIST_DIR, (int)FILENAME_MAX_LEN, entry->d_name);
+                if (written > 0 && (size_t)written < sizeof(path)) {
+                    unlink(path);
+                }
             }
         }
         closedir(dir);

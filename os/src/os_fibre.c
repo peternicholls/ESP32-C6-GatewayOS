@@ -139,6 +139,14 @@ static uint32_t calc_stack_used(os_fibre_t *fibre) {
             break;
         }
     }
+    /* If no non-pattern byte was found but stack exists, assume full usage */
+    if (used == 0 && fibre->stack_size > 0 && fibre->stack_base[0] == 0xCD) {
+        /* Stack is entirely unused - return 0 */
+        used = 0;
+    } else if (used == 0 && fibre->stack_size > 0) {
+        /* Entire stack has been used (no pattern bytes remain) */
+        used = fibre->stack_size;
+    }
     return used;
 }
 

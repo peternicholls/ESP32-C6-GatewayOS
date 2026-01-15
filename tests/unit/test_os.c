@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 /* Include OS headers directly for testing */
 #include "os_types.h"
@@ -19,6 +22,27 @@
 #include "registry.h"
 #include "interview.h"
 #include "capability.h"
+
+/* Test helper: safely remove directory and contents */
+static void remove_directory(const char *path) {
+    DIR *dir = opendir(path);
+    if (!dir) return;
+    
+    struct dirent *entry;
+    char filepath[512];
+    
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+        int ret = snprintf(filepath, sizeof(filepath), "%s/%.255s", path, entry->d_name);
+        if (ret > 0 && (size_t)ret < sizeof(filepath)) {
+            unlink(filepath);
+        }
+    }
+    closedir(dir);
+    rmdir(path);
+}
 
 /* Test macros */
 #define TEST_START(name)  printf("  Testing %s... ", name)
@@ -241,8 +265,8 @@ static void test_types(void) {
 static void test_persist_init(void) {
     TEST_START("persist_init");
     
-    /* Clean up any previous state */
-    system("rm -rf /tmp/bridge_persist");
+    /* Clean up any previous state using safe directory removal */
+    remove_directory("/tmp/bridge_persist");
     
     os_err_t err = os_persist_init();
     ASSERT_EQ(err, OS_OK);

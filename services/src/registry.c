@@ -354,6 +354,8 @@ reg_attribute_t *reg_find_attribute(reg_cluster_t *cluster, uint16_t attr_id) {
 /* Persistence key format */
 #define REG_PERSIST_KEY_PREFIX "node/"
 #define REG_PERSIST_COUNT_KEY "reg/count"
+/* Key buffer size: prefix (5) + IEEE addr hex (16) + null (1) = 22, use 32 for safety */
+#define REG_PERSIST_KEY_SIZE 32
 
 os_err_t reg_persist(void) {
     if (!registry.initialized) {
@@ -364,7 +366,7 @@ os_err_t reg_persist(void) {
     
     for (uint32_t i = 0; i < REG_MAX_NODES; i++) {
         if (registry.nodes[i].valid) {
-            char key[64];
+            char key[REG_PERSIST_KEY_SIZE];
             snprintf(key, sizeof(key), REG_PERSIST_KEY_PREFIX OS_EUI64_FMT,
                      OS_EUI64_ARG(registry.nodes[i].ieee_addr));
             
