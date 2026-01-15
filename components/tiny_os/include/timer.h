@@ -16,6 +16,7 @@ typedef struct tiny_timer {
     bool periodic;
     bool active;
     const char *name;
+    void *esp_timer_handle;  // Store ESP timer handle for cleanup
 } tiny_timer_t;
 
 /**

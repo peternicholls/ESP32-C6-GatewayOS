@@ -5,6 +5,7 @@
 #include "logger.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_heap_caps.h"
 
 static const char *TAG = "FIBRE_EXAMPLE";
 

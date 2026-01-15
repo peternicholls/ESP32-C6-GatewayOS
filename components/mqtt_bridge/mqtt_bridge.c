@@ -56,15 +56,36 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
     }
 }
 
+// Event handler for device joined
+static void on_device_joined(event_type_t type, void *data, size_t data_len)
+{
+    TINY_LOG_I(TAG, "Device joined event received");
+    // Would publish device info to MQTT discovery topic
+}
+
+// Event handler for device left
+static void on_device_left(event_type_t type, void *data, size_t data_len)
+{
+    TINY_LOG_I(TAG, "Device left event received");
+    // Would publish device unavailable to MQTT
+}
+
+// Event handler for attribute changed
+static void on_attribute_changed(event_type_t type, void *data, size_t data_len)
+{
+    TINY_LOG_D(TAG, "Attribute changed event received");
+    // Would publish state update to MQTT
+}
+
 esp_err_t mqtt_bridge_init(void)
 {
     TINY_LOG_I(TAG, "MQTT bridge initialized");
     TINY_LOG_I(TAG, "Northbound: MQTT-first with runway for Matter/HomeKit");
     
-    // Subscribe to Zigbee events
-    event_bus_subscribe(EVENT_ZIGBEE_DEVICE_JOINED, NULL);
-    event_bus_subscribe(EVENT_ZIGBEE_DEVICE_LEFT, NULL);
-    event_bus_subscribe(EVENT_ZIGBEE_ATTRIBUTE_CHANGED, NULL);
+    // Subscribe to Zigbee events with proper handlers
+    event_bus_subscribe(EVENT_ZIGBEE_DEVICE_JOINED, on_device_joined);
+    event_bus_subscribe(EVENT_ZIGBEE_DEVICE_LEFT, on_device_left);
+    event_bus_subscribe(EVENT_ZIGBEE_ATTRIBUTE_CHANGED, on_attribute_changed);
     
     return ESP_OK;
 }

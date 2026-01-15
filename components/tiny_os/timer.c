@@ -2,6 +2,7 @@
 #include "logger.h"
 #include "esp_timer.h"
 #include <string.h>
+#include <stdlib.h>
 
 static const char *TAG = "TIMER";
 
@@ -34,6 +35,7 @@ tiny_timer_t* timer_create(const char *name, uint64_t period_us, bool periodic,
     timer->callback = callback;
     timer->arg = arg;
     timer->active = false;
+    timer->esp_timer_handle = NULL;
     
     TINY_LOG_D(TAG, "Created timer: %s", name);
     return timer;
@@ -45,6 +47,13 @@ esp_err_t timer_start(tiny_timer_t *timer)
         return ESP_ERR_INVALID_ARG;
     }
     
+    // Stop and delete existing timer if active
+    if (timer->esp_timer_handle != NULL) {
+        esp_timer_stop((esp_timer_handle_t)timer->esp_timer_handle);
+        esp_timer_delete((esp_timer_handle_t)timer->esp_timer_handle);
+        timer->esp_timer_handle = NULL;
+    }
+    
     const esp_timer_create_args_t timer_args = {
         .callback = timer_callback_wrapper,
         .arg = timer,
@@ -52,12 +61,25 @@ esp_err_t timer_start(tiny_timer_t *timer)
     };
     
     esp_timer_handle_t esp_timer;
-    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &esp_timer));
+    esp_err_t err = esp_timer_create(&timer_args, &esp_timer);
+    if (err != ESP_OK) {
+        TINY_LOG_E(TAG, "Failed to create ESP timer");
+        return err;
+    }
+    
+    timer->esp_timer_handle = (void *)esp_timer;
     
     if (timer->periodic) {
-        ESP_ERROR_CHECK(esp_timer_start_periodic(esp_timer, timer->period_us));
+        err = esp_timer_start_periodic(esp_timer, timer->period_us);
     } else {
-        ESP_ERROR_CHECK(esp_timer_start_once(esp_timer, timer->period_us));
+        err = esp_timer_start_once(esp_timer, timer->period_us);
+    }
+    
+    if (err != ESP_OK) {
+        esp_timer_delete(esp_timer);
+        timer->esp_timer_handle = NULL;
+        TINY_LOG_E(TAG, "Failed to start ESP timer");
+        return err;
     }
     
     timer->active = true;
@@ -72,6 +94,14 @@ esp_err_t timer_stop(tiny_timer_t *timer)
         return ESP_ERR_INVALID_ARG;
     }
     
+    if (timer->esp_timer_handle != NULL) {
+        esp_err_t err = esp_timer_stop((esp_timer_handle_t)timer->esp_timer_handle);
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            TINY_LOG_E(TAG, "Failed to stop ESP timer");
+            return err;
+        }
+    }
+    
     timer->active = false;
     TINY_LOG_D(TAG, "Stopped timer: %s", timer->name);
     
@@ -82,6 +112,12 @@ esp_err_t timer_delete(tiny_timer_t *timer)
 {
     if (!timer) {
         return ESP_ERR_INVALID_ARG;
+    }
+    
+    // Stop and delete ESP timer if it exists
+    if (timer->esp_timer_handle != NULL) {
+        esp_timer_stop((esp_timer_handle_t)timer->esp_timer_handle);
+        esp_timer_delete((esp_timer_handle_t)timer->esp_timer_handle);
     }
     
     TINY_LOG_D(TAG, "Deleted timer: %s", timer->name);
