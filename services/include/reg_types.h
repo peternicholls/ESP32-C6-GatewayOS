@@ -25,13 +25,16 @@ extern "C" {
 #define REG_MANUFACTURER_LEN    32
 #define REG_MODEL_LEN           32
 
-/* Device lifecycle states */
+/* Device lifecycle states (per 00_context_and_guardrails.yaml FSM) */
 typedef enum {
-    REG_STATE_NEW = 0,       /* Just joined, not interviewed */
+    REG_STATE_NEW = 0,       /* Just joined, not announced yet */
+    REG_STATE_ANNOUNCED,     /* Device announced, ready for interview */
     REG_STATE_INTERVIEWING,  /* Interview in progress */
     REG_STATE_READY,         /* Fully interviewed, operational */
-    REG_STATE_STALE,         /* Device not responding */
-    REG_STATE_LEFT,          /* Device left the network */
+    REG_STATE_OFFLINE,       /* Device left the network, may rejoin */
+    REG_STATE_FAILED,        /* Interview failed or device error */
+    REG_STATE_STALE,         /* Legacy: Device not responding (deprecated) */
+    REG_STATE_LEFT,          /* Legacy: Device left (deprecated, use OFFLINE) */
 } reg_state_t;
 
 /* Cluster direction */

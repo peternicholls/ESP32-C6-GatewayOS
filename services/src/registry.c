@@ -19,11 +19,14 @@ static struct {
     uint32_t node_count;
 } registry = {0};
 
-/* State names */
+/* State names (per 00_context_and_guardrails.yaml FSM) */
 static const char *state_names[] = {
     "NEW",
+    "ANNOUNCED",
     "INTERVIEWING",
     "READY",
+    "OFFLINE",
+    "FAILED",
     "STALE",
     "LEFT"
 };

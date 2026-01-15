@@ -3,10 +3,10 @@
 ## Current state
 - Date (UTC): 2026-01-15
 - Commit: (see git log)
-- Branch: copilot/update-project-documents
-- Last completed milestone: M7
-- Next milestone in progress: M8 (HA Discovery - optional)
-- Active task IDs: T080
+- Branch: copilot/add-new-prompts-directory
+- Last completed milestone: M8
+- Next milestone in progress: M9 (Expand device classes)
+- Active task IDs: T080 (completed)
 - Known blockers: M4 (Zigbee adapter) requires ESP32 hardware
 
 ## Verified working
@@ -24,6 +24,8 @@
 - [x] MQTT connects and stays connected (simulated)
 - [x] MQTT publishes state updates (simulated)
 - [ ] MQTT commands trigger Zigbee actions (requires ESP32 hardware)
+- [x] HA Discovery service implemented
+- [x] Device quirks system implemented
 
 ## Progress notes
 **Since last update**
@@ -34,14 +36,19 @@
 - M5: Implemented interview/provisioner service (simulated Zigbee)
 - M6: Implemented capability mapping for lights (OnOff, Level clusters)
 - M7: Implemented MQTT adapter (simulated for host testing)
+- M8: Implemented HA Discovery service (T080) with:
+  - Light merging (on/off + level -> single light entity)
+  - Sensor discovery (temperature, humidity, contact, motion)
+  - MQTT pending queue for offline handling
+- Device quirks table system for non-standard devices
+- Updated node lifecycle FSM states per 00_context_and_guardrails.yaml
 
 **Today focus**
 - Complete all implementable milestones without ESP32 hardware
-- All 30 unit tests passing
+- All 38 unit tests passing
 
 **Next actions**
 - M4: Zigbee adapter requires ESP32 hardware with ESP-IDF
-- M8: Home Assistant discovery (optional)
 - M9: Expand device classes
 - M10: Matter bridge spike (bonus)
 
@@ -52,11 +59,12 @@
 - MQTT topic scheme: bridge/<node_id>/<capability>/{state|set|meta}
 - Persistence schema version: 1
 - Queue overflow policy: drop_oldest_noncritical; log and count drops
+- Node lifecycle FSM: NEW → ANNOUNCED → INTERVIEWING → READY → OFFLINE → FAILED
 
 ## Metrics
-- Unit tests: 30 passing
+- Unit tests: 38 passing
 - OS components: 7 (fibre, event, log, console, shell, persist, types)
-- Services: 4 (registry, interview, capability, reg_shell)
+- Services: 6 (registry, interview, capability, reg_shell, ha_disc, quirks)
 - Adapters: 1 (mqtt)
 
 ## Open questions
@@ -69,7 +77,7 @@
 **Risks**
 - R1: Zigbee stack callback context constraints
 - R2: Persistence schema evolution
-- R3: Device quirks / non-standard attributes
+- R3: Device quirks / non-standard attributes (mitigated by quirks system)
 - R4: Cooperative scheduling starvation
 
 ## How to resume

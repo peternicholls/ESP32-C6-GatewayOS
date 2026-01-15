@@ -22,6 +22,8 @@
 #include "registry.h"
 #include "interview.h"
 #include "capability.h"
+#include "ha_disc.h"
+#include "quirks.h"
 
 /* Test helper: safely remove directory and contents */
 static void remove_directory(const char *path) {
@@ -595,6 +597,129 @@ static void test_cap_parse_name(void) {
     TEST_PASS();
 }
 
+/* HA Discovery tests */
+
+static void test_ha_disc_init(void) {
+    TEST_START("ha_disc_init");
+    
+    os_err_t err = ha_disc_init();
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Double init should return error */
+    err = ha_disc_init();
+    ASSERT_EQ(err, OS_ERR_ALREADY_EXISTS);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_ha_disc_component_name(void) {
+    TEST_START("ha_disc_component_name");
+    
+    ASSERT_TRUE(strcmp(ha_disc_component_name(HA_COMPONENT_LIGHT), "light") == 0);
+    ASSERT_TRUE(strcmp(ha_disc_component_name(HA_COMPONENT_SWITCH), "switch") == 0);
+    ASSERT_TRUE(strcmp(ha_disc_component_name(HA_COMPONENT_SENSOR), "sensor") == 0);
+    ASSERT_TRUE(strcmp(ha_disc_component_name(HA_COMPONENT_BINARY_SENSOR), "binary_sensor") == 0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_ha_disc_generate_config(void) {
+    TEST_START("ha_disc_generate_config");
+    
+    os_eui64_t addr = 0xAABBCCDDEEFF0011;
+    ha_disc_config_t config;
+    
+    os_err_t err = ha_disc_generate_config(addr, CAP_LIGHT_ON, &config);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_EQ(config.component, HA_COMPONENT_LIGHT);
+    ASSERT_TRUE(strlen(config.unique_id) > 0);
+    ASSERT_TRUE(strlen(config.state_topic) > 0);
+    ASSERT_TRUE(strlen(config.command_topic) > 0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+/* Quirks tests */
+
+static void test_quirks_init(void) {
+    TEST_START("quirks_init");
+    
+    os_err_t err = quirks_init();
+    ASSERT_EQ(err, OS_OK);
+    
+    /* Double init should return error */
+    err = quirks_init();
+    ASSERT_EQ(err, OS_ERR_ALREADY_EXISTS);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_quirks_find(void) {
+    TEST_START("quirks_find");
+    
+    /* Should find DUMMY device */
+    const quirk_entry_t *entry = quirks_find("DUMMY", "DUMMY-LIGHT-1");
+    ASSERT_TRUE(entry != NULL);
+    ASSERT_TRUE(strcmp(entry->manufacturer, "DUMMY") == 0);
+    ASSERT_TRUE(entry->action_count >= 1);
+    
+    /* Should not find unknown device */
+    entry = quirks_find("UNKNOWN", "UNKNOWN-MODEL");
+    ASSERT_TRUE(entry == NULL);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_quirks_apply_value(void) {
+    TEST_START("quirks_apply_value");
+    
+    cap_value_t value;
+    quirk_result_t result;
+    
+    /* Test clamp_range quirk */
+    value.i = 150;  /* Over max of 100 */
+    os_err_t err = quirks_apply_value("DUMMY", "DUMMY-LIGHT-1", CAP_LIGHT_LEVEL, &value, &result);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_TRUE(result.applied);
+    ASSERT_EQ(value.i, 100);  /* Should be clamped to max */
+    
+    /* Test with value under min */
+    value.i = 0;
+    err = quirks_apply_value("DUMMY", "DUMMY-LIGHT-1", CAP_LIGHT_LEVEL, &value, &result);
+    ASSERT_EQ(err, OS_OK);
+    ASSERT_TRUE(result.applied);
+    ASSERT_EQ(value.i, 1);  /* Should be clamped to min */
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_quirks_count(void) {
+    TEST_START("quirks_count");
+    
+    uint32_t count = quirks_count();
+    ASSERT_TRUE(count >= 1);  /* At least the DUMMY entry */
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+static void test_quirks_action_name(void) {
+    TEST_START("quirks_action_name");
+    
+    ASSERT_TRUE(strcmp(quirks_action_name(QUIRK_ACTION_CLAMP_RANGE), "clamp_range") == 0);
+    ASSERT_TRUE(strcmp(quirks_action_name(QUIRK_ACTION_INVERT_BOOLEAN), "invert_boolean") == 0);
+    ASSERT_TRUE(strcmp(quirks_action_name(QUIRK_ACTION_SCALE_NUMERIC), "scale_numeric") == 0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
 int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
@@ -644,6 +769,18 @@ int main(int argc, char *argv[]) {
     test_cap_compute();
     test_cap_get_info();
     test_cap_parse_name();
+    
+    printf("\nHA Discovery tests:\n");
+    test_ha_disc_init();
+    test_ha_disc_component_name();
+    test_ha_disc_generate_config();
+    
+    printf("\nQuirks tests:\n");
+    test_quirks_init();
+    test_quirks_find();
+    test_quirks_apply_value();
+    test_quirks_count();
+    test_quirks_action_name();
     
     printf("\n=== Results ===\n");
     printf("Passed: %d\n", tests_passed);

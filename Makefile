@@ -23,7 +23,9 @@ OS_SRCS = os/src/os.c \
 SVC_SRCS = services/src/registry.c \
            services/src/reg_shell.c \
            services/src/interview.c \
-           services/src/capability.c
+           services/src/capability.c \
+           services/src/ha_disc.c \
+           services/src/quirks.c
 
 ADAPT_SRCS = adapters/src/mqtt_adapter.c
 
@@ -57,7 +59,7 @@ $(MAIN_TARGET): $(OS_OBJS) $(SVC_OBJS) $(ADAPT_OBJS) $(APP_OBJS) $(MAIN_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
 	@echo "Built: $@"
 
-$(TEST_TARGET): $(TEST_OBJS) os/src/os_event.o os/src/os_log.o os/src/os_fibre.o os/src/os_persist.o services/src/registry.o services/src/interview.o services/src/capability.o
+$(TEST_TARGET): $(TEST_OBJS) os/src/os_event.o os/src/os_log.o os/src/os_fibre.o os/src/os_persist.o services/src/registry.o services/src/interview.o services/src/capability.o services/src/quirks.o services/src/ha_disc.o adapters/src/mqtt_adapter.o
 	@mkdir -p build
 	$(CC) $(CFLAGS) $^ -o $@
 	@echo "Built: $@"
@@ -92,6 +94,8 @@ services/src/registry.o: services/include/registry.h services/include/reg_types.
 services/src/reg_shell.o: services/include/registry.h os/include/os.h
 services/src/interview.o: services/include/interview.h services/include/registry.h os/include/os.h
 services/src/capability.o: services/include/capability.h services/include/registry.h os/include/os.h
+services/src/ha_disc.o: services/include/ha_disc.h services/include/capability.h services/include/registry.h adapters/include/mqtt_adapter.h os/include/os.h
+services/src/quirks.o: services/include/quirks.h services/include/capability.h os/include/os.h
 adapters/src/mqtt_adapter.o: adapters/include/mqtt_adapter.h services/include/capability.h os/include/os.h
 apps/src/app_blink.o: apps/src/app_blink.h os/include/os.h
 main/src/main.o: os/include/os.h apps/src/app_blink.h
