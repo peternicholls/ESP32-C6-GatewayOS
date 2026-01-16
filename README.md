@@ -187,13 +187,17 @@ Specs and project plans live in `docs/spec/` (mirrored from `Prompts/`).
 
 ### Directory Structure
 
+The project follows a **consistent hybrid structure**:
+- Core OS and shared service APIs keep separated headers/sources
+- Specialized modules (adapters, drivers, services) co-locate headers with sources in their own subdirectories
+
 ```
 ├── docs/           # Documentation
 ├── main/           # Application entry point
 │   └── src/
 │       └── main.c
 ├── os/             # Tiny OS components
-│   ├── include/    # Public headers
+│   ├── include/    # Public OS API headers
 │   │   ├── os.h
 │   │   ├── os_config.h
 │   │   ├── os_event.h
@@ -201,18 +205,23 @@ Specs and project plans live in `docs/spec/` (mirrored from `Prompts/`).
 │   │   ├── os_log.h
 │   │   ├── os_persist.h
 │   │   └── os_shell.h
-│   └── src/        # Implementation
+│   └── src/        # OS implementation
 ├── services/       # Domain services
-│   ├── include/
+│   ├── include/    # Shared service type headers (reg_types.h, capability.h, etc.)
 │   │   ├── registry.h
 │   │   ├── interview.h
 │   │   └── capability.h
-│   └── src/
-├── adapters/       # Northbound adapters
-│   ├── include/
-│   │   └── mqtt_adapter.h
-│   └── src/
-├── drivers/        # Hardware drivers (placeholder)
+│   ├── src/        # Core service implementations
+│   ├── ha_disc/    # Self-contained service module
+│   └── local_node/ # Self-contained service module
+├── adapters/       # Northbound protocol adapters (each in its own subdirectory)
+│   └── mqtt_adapter/
+│       ├── mqtt_adapter.h
+│       └── mqtt_adapter.c
+├── drivers/        # Hardware driver modules (each in its own subdirectory)
+│   ├── zigbee/
+│   ├── gpio_button/
+│   └── i2c_sensor/
 ├── apps/           # Demo applications
 │   └── src/
 │       └── app_blink.c
@@ -220,6 +229,8 @@ Specs and project plans live in `docs/spec/` (mirrored from `Prompts/`).
     └── unit/
         └── test_os.c
 ```
+
+**Note**: Future adapters and drivers should follow the same co-located pattern (create `adapters/new_adapter/` or `drivers/new_driver/` with headers and sources in the same directory).
 
 ### Data Model
 
