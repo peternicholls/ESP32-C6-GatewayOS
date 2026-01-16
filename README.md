@@ -454,10 +454,14 @@ LOG_T("MODULE", "Trace: %s", msg);    // Very verbose
 - **M5**: Interview/provisioner service (simulated)
 - **M6**: Capability mapping for lights (OnOff, Level clusters)
 - **M7**: MQTT adapter (simulated for host testing)
+- **M8**: Home Assistant discovery service
+  - Light merging (on/off + level → single light entity)
+  - Sensor discovery (temperature, humidity, contact, motion)
+  - Device quirks table for non-standard devices
 
 ### In Progress
 
-- **M8**: Home Assistant discovery (optional)
+- **M9**: Expand device classes (sensors, switches, etc.)
 
 ### Requires ESP32 Hardware
 
@@ -465,7 +469,6 @@ LOG_T("MODULE", "Trace: %s", msg);    // Very verbose
 
 ### Planned
 
-- **M9**: Expand device classes (sensors, switches, etc.)
 - **M10**: Matter bridge spike (bonus)
 
 ### Verified Working (Host Simulation)
@@ -479,6 +482,8 @@ LOG_T("MODULE", "Trace: %s", msg);    // Very verbose
 - [x] Interview/provisioner works (simulated)
 - [x] Registry persists and restores
 - [x] MQTT connects and publishes (simulated)
+- [x] HA Discovery service works
+- [x] Device quirks system works
 
 ### Requires ESP32 Hardware
 
@@ -486,6 +491,63 @@ LOG_T("MODULE", "Trace: %s", msg);    // Very verbose
 - [ ] Permit join works
 - [ ] Light control end-to-end
 - [ ] MQTT commands trigger Zigbee actions
+
+## Home Assistant Discovery
+
+The bridge supports Home Assistant MQTT discovery for automatic device integration.
+
+### Discovery Topics
+
+| Entity Type | Topic Pattern |
+|-------------|---------------|
+| Light | `homeassistant/light/<unique_id>/config` |
+| Switch | `homeassistant/switch/<unique_id>/config` |
+| Sensor | `homeassistant/sensor/<unique_id>/config` |
+| Binary Sensor | `homeassistant/binary_sensor/<unique_id>/config` |
+
+### Light Merging
+
+When a device supports both on/off and brightness, they are merged into a single HA light entity:
+- `light.on` capability → state control
+- `light.level` capability → brightness control
+
+### Unique ID Format
+
+`<bridge_id>_<node_eui64>_<capability_sanitized>`
+
+Example: `zigbee_bridge_00112233AABBCCDD_light`
+
+## Device Quirks
+
+The bridge includes a quirks system to handle non-standard Zigbee devices.
+
+### Supported Quirk Actions
+
+| Action | Description |
+|--------|-------------|
+| `clamp_range` | Clamp values to min/max range |
+| `invert_boolean` | Invert true/false values |
+| `scale_numeric` | Apply multiplier and offset |
+
+### Adding Quirks
+
+Quirks are defined in `services/src/quirks.c`:
+
+```c
+{
+    .manufacturer = "VENDOR",
+    .model = "MODEL-123",
+    .prefix_match = false,
+    .actions = {
+        {
+            .type = QUIRK_ACTION_CLAMP_RANGE,
+            .target_cap = CAP_LIGHT_LEVEL,
+            .params.clamp = { .min = 1, .max = 100 }
+        }
+    },
+    .action_count = 1
+}
+```
 
 ## License
 
