@@ -63,8 +63,8 @@
 ### Implementation for User Story 2
 
 - [ ] T013 [US2] Implement `zb_set_permit_join()` — acquire lock, call `esp_zb_bdb_open_network()`, release lock in `drivers/zigbee/zb_real.c`
-- [ ] T014 [US2] Handle `ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE` in signal handler — extract EUI64+NWK, update cache, emit `OS_EVENT_ZB_DEVICE_JOINED` in `drivers/zigbee/zb_real.c`
-- [ ] T015 [US2] Handle `ESP_ZB_COMMON_SIGNAL_DEVICE_JOINED` in signal handler — extract EUI64, update cache in `drivers/zigbee/zb_real.c`
+- [ ] T014 [US2] Handle `ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE` in signal handler — extract EUI64+NWK, update cache, emit `OS_EVENT_ZB_ANNOUNCE` in `drivers/zigbee/zb_real.c`
+- [ ] T015 [US2] Handle `ESP_ZB_COMMON_SIGNAL_DEVICE_JOINED` in signal handler — extract EUI64, update cache, emit `OS_EVENT_ZB_DEVICE_JOINED` in `drivers/zigbee/zb_real.c`
 
 **Checkpoint**: Devices can join when permit join enabled, join events emitted — US2 complete
 
@@ -127,6 +127,8 @@
 - [ ] T027 Verify `zb_real.c` is under 200 lines; if over, split into `zb_real.c` (lifecycle) + `zb_cmd.c` (commands)
 - [ ] T028 Run quickstart.md validation — build, flash, form network, join device, send command
 - [ ] T029 Extend `tests/unit/test_zb_adapter.c` to cover zb_real.c contract compliance (event shapes match zb_fake.c)
+- [ ] T030 Capture performance metrics for SC-001..SC-004 — log timestamps for formation, join detection, command RTT, attr report latency; add assertions/thresholds in quickstart or test harness
+- [ ] T031 Add event drop/throughput observation for SC-005 — simulate 10 events/sec sustained, confirm no drops or log drop counter behavior
 
 ---
 
@@ -237,14 +239,14 @@ T019-T023: US4 attribute reports
 
 | Metric | Value |
 |--------|-------|
-| Total Tasks | 29 |
+| Total Tasks | 31 |
 | Setup Tasks | 2 |
 | Foundational Tasks | 5 |
 | US1 Tasks (P1) | 5 |
 | US2 Tasks (P1) | 3 |
 | US3 Tasks (P2) | 3 |
-| US4 Tasks (P4) | 5 |
+| US4 Tasks (P2) | 5 |
 | US5 Tasks (P3) | 1 |
-| Polish Tasks | 5 |
+| Polish Tasks | 7 |
 | Parallel Opportunities | 6 task groups |
 | MVP Scope | US1 + US2 (15 tasks) |

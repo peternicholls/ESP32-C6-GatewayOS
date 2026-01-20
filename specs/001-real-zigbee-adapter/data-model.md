@@ -88,6 +88,14 @@ Events emitted to OS bus with 32-byte max payload.
 | `nwk_addr` | 8 | 2 | `uint16_t` |
 | _reserved_ | 10 | 22 | - |
 
+### OS_EVENT_ZB_ANNOUNCE
+
+| Field | Offset | Size | Type |
+|-------|--------|------|------|
+| `eui64` | 0 | 8 | `os_eui64_t` |
+| `nwk_addr` | 8 | 2 | `uint16_t` |
+| _reserved_ | 10 | 22 | - |
+
 ### OS_EVENT_ZB_DEVICE_LEFT
 
 | Field | Offset | Size | Type |

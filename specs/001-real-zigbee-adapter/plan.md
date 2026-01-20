@@ -7,7 +7,7 @@
 
 ## Summary
 
-Replace the fake Zigbee adapter (`zb_fake.c`) with a real implementation (`zb_real.c`) using ESP-IDF's `esp-zigbee-lib`. The adapter MUST implement the existing `zb_adapter.h` contract exactly (9 functions), ensuring all Zigbee stack callbacks enqueue events to the bus and return immediately. The implementation uses coordinator mode to form networks, manage device joins, and route commands/events.
+Replace the fake Zigbee adapter (`zb_fake.c`) with a real implementation (`zb_real.c`) using ESP-IDF's `esp-zigbee-lib`. The adapter MUST implement the existing `zb_adapter.h` contract exactly (8 functions), ensuring all Zigbee stack callbacks enqueue events to the bus and return immediately. The implementation uses coordinator mode to form networks, manage device joins, and route commands/events.
 
 ## Technical Context
 
