@@ -97,7 +97,11 @@ zb_err_t zb_read_attrs(zb_node_id_t node_id, uint8_t endpoint,
   return (err == ESP_OK) ? OS_OK : OS_ERR_BUSY;
 }
 
-/* Configure Reporting */
+/* Configure Reporting
+ * TODO: attr_type hardcoded to U8, reportable_change to NULL.
+ * Future: extend API to accept attr_type and reportable_change for
+ * analog attributes that require change thresholds.
+ */
 zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
                                 uint16_t cluster_id, uint16_t attr_id,
                                 uint16_t min_s, uint16_t max_s,
@@ -137,6 +141,27 @@ zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
   return (err == ESP_OK) ? OS_OK : OS_ERR_BUSY;
 }
 
+/* ZDO Bind Response Callback */
+static void zb_bind_cb(esp_zb_zdp_status_t zdo_status, void *user_ctx) {
+  zb_pending_cmd_t *slot = (zb_pending_cmd_t *)user_ctx;
+  if (!slot)
+    return;
+  if (zdo_status == ESP_ZB_ZDP_STATUS_SUCCESS) {
+    struct {
+      os_corr_id_t corr_id;
+      uint8_t status;
+    } p = {slot->corr_id, 0};
+    emit_event(OS_EVENT_ZB_CMD_CONFIRM, &p, sizeof(p));
+  } else {
+    struct {
+      os_corr_id_t corr_id;
+      uint16_t err;
+    } p = {slot->corr_id, (uint16_t)zdo_status};
+    emit_event(OS_EVENT_ZB_CMD_ERROR, &p, sizeof(p));
+  }
+  pending_free(slot);
+}
+
 /* Bind Request */
 zb_err_t zb_bind(zb_node_id_t node_id, uint8_t endpoint, uint16_t cluster_id,
                  os_corr_id_t corr_id) {
@@ -163,8 +188,7 @@ zb_err_t zb_bind(zb_node_id_t node_id, uint8_t endpoint, uint16_t cluster_id,
          sizeof(req.dst_address_u.addr_long));
 
   esp_zb_lock_acquire(portMAX_DELAY);
-  esp_zb_zdo_device_bind_req(&req, NULL, NULL);
+  esp_zb_zdo_device_bind_req(&req, zb_bind_cb, slot);
   esp_zb_lock_release();
-  (void)slot;
   return OS_OK;
 }

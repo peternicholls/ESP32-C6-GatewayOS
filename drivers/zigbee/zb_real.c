@@ -118,6 +118,7 @@ void emit_event(os_event_type_t type, const void *payload, uint8_t len) {
 /* Zigbee Task */
 static void zb_task(void *pv) {
   (void)pv;
+  esp_zb_start(true); /* Start Zigbee stack before main loop */
   esp_zb_stack_main_loop();
   vTaskDelete(NULL);
 }
