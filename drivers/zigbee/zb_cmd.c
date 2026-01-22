@@ -29,11 +29,11 @@ zb_err_t zb_send_onoff(zb_node_id_t node_id, uint8_t endpoint, bool on,
           on ? ESP_ZB_ZCL_CMD_ON_OFF_ON_ID : ESP_ZB_ZCL_CMD_ON_OFF_OFF_ID,
   };
   esp_zb_lock_acquire(portMAX_DELAY);
-  esp_err_t err = esp_zb_zcl_on_off_cmd_req(&cmd);
+  uint8_t tsn = esp_zb_zcl_on_off_cmd_req(&cmd);
   esp_zb_lock_release();
-  if (err != ESP_OK && slot)
-    pending_free(slot);
-  return (err == ESP_OK) ? OS_OK : OS_ERR_BUSY;
+  if (slot)
+    slot->tsn = tsn;
+  return OS_OK;
 }
 
 /* Level Command */
@@ -57,11 +57,11 @@ zb_err_t zb_send_level(zb_node_id_t node_id, uint8_t endpoint, uint8_t level,
       .transition_time = transition_ds,
   };
   esp_zb_lock_acquire(portMAX_DELAY);
-  esp_err_t err = esp_zb_zcl_level_move_to_level_cmd_req(&cmd);
+  uint8_t tsn = esp_zb_zcl_level_move_to_level_cmd_req(&cmd);
   esp_zb_lock_release();
-  if (err != ESP_OK && slot)
-    pending_free(slot);
-  return (err == ESP_OK) ? OS_OK : OS_ERR_BUSY;
+  if (slot)
+    slot->tsn = tsn;
+  return OS_OK;
 }
 
 /* Read Attributes */
@@ -90,22 +90,18 @@ zb_err_t zb_read_attrs(zb_node_id_t node_id, uint8_t endpoint,
       .attr_field = (uint16_t *)attr_ids,
   };
   esp_zb_lock_acquire(portMAX_DELAY);
-  esp_err_t err = esp_zb_zcl_read_attr_cmd_req(&cmd);
+  uint8_t tsn = esp_zb_zcl_read_attr_cmd_req(&cmd);
   esp_zb_lock_release();
-  if (err != ESP_OK && slot)
-    pending_free(slot);
-  return (err == ESP_OK) ? OS_OK : OS_ERR_BUSY;
+  if (slot)
+    slot->tsn = tsn;
+  return OS_OK;
 }
 
-/* Configure Reporting
- * TODO: attr_type hardcoded to U8, reportable_change to NULL.
- * Future: extend API to accept attr_type and reportable_change for
- * analog attributes that require change thresholds.
- */
+/* Configure Reporting */
 zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
                                 uint16_t cluster_id, uint16_t attr_id,
-                                uint16_t min_s, uint16_t max_s,
-                                os_corr_id_t corr_id) {
+                                uint8_t attr_type, uint16_t min_s,
+                                uint16_t max_s, os_corr_id_t corr_id) {
   if (zb_get_state() != ZB_STATE_READY)
     return OS_ERR_NOT_READY;
   zb_nwk_entry_t *entry = nwk_cache_find(node_id);
@@ -119,7 +115,7 @@ zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
   esp_zb_zcl_config_report_record_t rec = {
       .direction = ESP_ZB_ZCL_REPORT_DIRECTION_SEND,
       .attributeID = attr_id,
-      .attrType = ESP_ZB_ZCL_ATTR_TYPE_U8,
+      .attrType = attr_type,
       .min_interval = min_s,
       .max_interval = max_s,
       .reportable_change = NULL,
@@ -134,11 +130,11 @@ zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
       .record_field = &rec,
   };
   esp_zb_lock_acquire(portMAX_DELAY);
-  esp_err_t err = esp_zb_zcl_config_report_cmd_req(&cmd);
+  uint8_t tsn = esp_zb_zcl_config_report_cmd_req(&cmd);
   esp_zb_lock_release();
-  if (err != ESP_OK && slot)
-    pending_free(slot);
-  return (err == ESP_OK) ? OS_OK : OS_ERR_BUSY;
+  if (slot)
+    slot->tsn = tsn;
+  return OS_OK;
 }
 
 /* ZDO Bind Response Callback */
