@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 
 /* Include OS headers directly for testing */
 #include "os_types.h"
@@ -164,6 +165,53 @@ static void test_event_stats(void) {
     ASSERT_EQ(err, OS_OK);
     ASSERT_TRUE(stats.events_published > 0);
     ASSERT_TRUE(stats.events_dispatched > 0);
+    
+    tests_passed++;
+    TEST_PASS();
+}
+
+/* SC-005: Event throughput test - 10 events/sec sustained with no drops */
+static void test_event_throughput_sc005(void) {
+    TEST_START("event_throughput_sc005");
+    
+    /* Get initial stats */
+    os_event_stats_t stats_before, stats_after;
+    os_err_t err = os_event_get_stats(&stats_before);
+    ASSERT_EQ(err, OS_OK);
+    uint32_t drops_before = stats_before.events_dropped;
+    
+    /* Simulate 10 events/sec sustained for 1 "second" (100 events total) */
+    const int total_events = 100;
+    int published = 0;
+    
+    for (int i = 0; i < total_events; i++) {
+        /* Publish event */
+        err = os_event_emit(OS_EVENT_ZB_ATTR_REPORT, NULL, 0);
+        if (err == OS_OK) {
+            published++;
+        }
+        
+        /* Simulate dispatch every 10 events (like 100ms intervals) */
+        if ((i + 1) % 10 == 0) {
+            os_event_dispatch(0);
+        }
+    }
+    
+    /* Final dispatch to clear queue */
+    os_event_dispatch(0);
+    
+    /* Check stats - should have no drops */
+    err = os_event_get_stats(&stats_after);
+    ASSERT_EQ(err, OS_OK);
+    
+    uint32_t drops = stats_after.events_dropped - drops_before;
+    
+    /* SC-005: No events dropped under normal operation (≤10 events/second sustained) */
+    if (drops > 0) {
+        printf("WARN: %" PRIu32 " events dropped (published %d)\n", drops, published);
+    }
+    ASSERT_EQ(drops, 0);
+    ASSERT_EQ(published, total_events);
     
     tests_passed++;
     TEST_PASS();
@@ -685,6 +733,7 @@ int main(int argc, char *argv[]) {
     test_event_filter();
     test_event_payload();
     test_event_stats();
+    test_event_throughput_sc005();
     
     printf("\nLog tests:\n");
     test_log_init();

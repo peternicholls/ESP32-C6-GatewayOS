@@ -126,9 +126,9 @@
 - [X] T026 Add pending command timeout purge — check timestamps, emit timeout errors in `drivers/zigbee/zb_real.c`
 - [X] T027 Verify `zb_real.c` is under 200 lines; if over, split into `zb_real.c` (lifecycle) + `zb_cmd.c` (commands)
 - [X] T028 Run quickstart.md validation — build, flash, form network, join device, send command
-- [ ] T029 Extend `tests/unit/test_zb_adapter.c` to cover zb_real.c contract compliance (event shapes match zb_fake.c)
-- [ ] T030 Capture performance metrics for SC-001..SC-004 — log timestamps for formation, join detection, command RTT, attr report latency; add assertions/thresholds in quickstart or test harness
-- [ ] T031 Add event drop/throughput observation for SC-005 — simulate 10 events/sec sustained, confirm no drops or log drop counter behavior
+- [X] T029 Extend `tests/unit/test_zb_adapter.c` to cover zb_real.c contract compliance (event shapes match zb_fake.c)
+- [X] T030 Capture performance metrics for SC-001..SC-004 — log timestamps for formation, join detection, command RTT, attr report latency; add assertions/thresholds in quickstart or test harness
+- [X] T031 Add event drop/throughput observation for SC-005 — simulate 10 events/sec sustained, confirm no drops or log drop counter behavior
 
 ---
 

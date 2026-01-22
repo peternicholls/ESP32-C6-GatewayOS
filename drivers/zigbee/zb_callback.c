@@ -4,17 +4,33 @@
  *
  * ESP32-C6 Zigbee Bridge OS - Callback handlers for esp-zigbee-lib
  * Lifecycle in zb_real.c, commands in zb_cmd.c (split per constitution)
+ *
+ * Performance metrics (SC-001..SC-004):
+ * - SC-001: Network formation time logged at FORMATION signal
+ * - SC-002: Device join detection time logged at DEVICE_ANNCE
+ * - SC-003: Command RTT logged in send status callback
+ * - SC-004: Attribute report latency logged in core action callback
  */
 
 #include "esp_check.h"
 #include "esp_zigbee_core.h"
 #include "zb_real_internal.h"
 
-/* Command Send Status Callback */
+/* Performance metric: boot timestamp for SC-001 */
+static uint32_t s_boot_time_ms = 0;
+
+void zb_perf_set_boot_time(uint32_t ms) { s_boot_time_ms = ms; }
+
+/* Command Send Status Callback - SC-003: Command RTT */
 void zb_cmd_send_status_cb(esp_zb_zcl_command_send_status_message_t msg) {
   zb_pending_cmd_t *slot = pending_find_by_tsn(msg.tsn);
   if (!slot)
     return;
+  /* SC-003: Log command round-trip time */
+  uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
+  uint32_t rtt_ms = now_ms - slot->timestamp_ms;
+  LOG_I(ZB_MODULE, "CMD_RTT: %" PRIu32 "ms (corr=%" PRIu32 ", status=%d)",
+        rtt_ms, slot->corr_id, msg.status);
   if (msg.status == ESP_OK) {
     struct {
       os_corr_id_t corr_id;
@@ -31,13 +47,17 @@ void zb_cmd_send_status_cb(esp_zb_zcl_command_send_status_message_t msg) {
   pending_free(slot);
 }
 
-/* Core Action Callback for Attribute Reports */
+/* Core Action Callback for Attribute Reports - SC-004: Report latency */
 esp_err_t zb_core_action_cb(esp_zb_core_action_callback_id_t id,
                             const void *msg) {
   if (id == ESP_ZB_CORE_REPORT_ATTR_CB_ID) {
     const esp_zb_zcl_report_attr_message_t *r = msg;
     if (!r || !r->status)
       return ESP_OK;
+    /* SC-004: Log attribute report reception (latency measured from emission)
+     */
+    LOG_I(ZB_MODULE, "ATTR_REPORT: cluster=0x%04x, attr=0x%04x from NWK=0x%04x",
+          r->cluster, r->attribute.id, r->src_address.u.short_addr);
     struct {
       os_eui64_t eui64;
       uint8_t ep;
@@ -62,10 +82,14 @@ esp_err_t zb_core_action_cb(esp_zb_core_action_callback_id_t id,
   return ESP_OK;
 }
 
-/* Signal Handler - called by esp-zigbee-lib */
+/* Signal Handler - called by esp-zigbee-lib
+ * SC-001: Network formation time
+ * SC-002: Device join detection time
+ */
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
   esp_zb_app_signal_type_t sig = *signal->p_app_signal;
   esp_err_t st = signal->esp_err_status;
+  uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
 
   switch (sig) {
   case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
@@ -84,8 +108,11 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
     break;
   case ESP_ZB_BDB_SIGNAL_FORMATION:
     if (st == ESP_OK) {
-      LOG_I(ZB_MODULE, "Network formed, PAN: 0x%04x, Ch: %d",
-            esp_zb_get_pan_id(), esp_zb_get_current_channel());
+      /* SC-001: Log network formation time from boot */
+      uint32_t formation_ms = s_boot_time_ms ? (now_ms - s_boot_time_ms) : 0;
+      LOG_I(ZB_MODULE,
+            "PERF_SC001: Network formed in %" PRIu32 "ms, PAN: 0x%04x, Ch: %d",
+            formation_ms, esp_zb_get_pan_id(), esp_zb_get_current_channel());
       zb_set_state_ready();
       emit_event(OS_EVENT_ZB_STACK_UP, NULL, 0);
     } else {
@@ -106,7 +133,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
         uint16_t nwk;
       } p = {eui64, a->device_short_addr};
       emit_event(OS_EVENT_ZB_ANNOUNCE, &p, sizeof(p));
-      LOG_I(ZB_MODULE, "Announce: " OS_EUI64_FMT " @ 0x%04x",
+      /* SC-002: Log device join detection */
+      LOG_I(ZB_MODULE, "PERF_SC002: Device announce: " OS_EUI64_FMT " @ 0x%04x",
             OS_EUI64_ARG(eui64), a->device_short_addr);
     }
     break;

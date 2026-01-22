@@ -128,6 +128,8 @@ zb_err_t zb_init(void) {
   if (s_state != ZB_STATE_UNINITIALIZED)
     return OS_ERR_BUSY;
   s_state = ZB_STATE_INITIALIZING;
+  /* SC-001: Record boot time for formation latency measurement */
+  zb_perf_set_boot_time(xTaskGetTickCount() * portTICK_PERIOD_MS);
   memset(s_nwk_cache, 0, sizeof(s_nwk_cache));
   memset(s_pending_cmds, 0, sizeof(s_pending_cmds));
   esp_zb_cfg_t cfg = {

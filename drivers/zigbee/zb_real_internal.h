@@ -77,6 +77,7 @@ zb_pending_cmd_t *pending_find_by_tsn(uint8_t tsn);
 void pending_free(zb_pending_cmd_t *slot);
 void pending_purge_timeouts(void);
 void emit_event(os_event_type_t type, const void *payload, uint8_t len);
+void zb_perf_set_boot_time(uint32_t ms);
 
 #ifdef CONFIG_IDF_TARGET_ESP32C6
 /* Callbacks (implemented in zb_callback.c, registered in zb_real.c) */
