@@ -229,7 +229,7 @@ static void test_zb_configure_reporting_returns_ok(void) {
   TEST_START("zb_configure_reporting_returns_ok");
 
   os_err_t err = zb_configure_reporting(0x0102030405060708ULL, 1, 0x0006,
-                                        0x0000, 1, 300, 0);
+                                        0x0000, 0x20, 1, 300, 0);
   ASSERT_EQ(err, OS_OK);
 
   tests_passed++;

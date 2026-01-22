@@ -46,8 +46,8 @@ zb_err_t zb_read_attrs(zb_node_id_t node_id, uint8_t endpoint,
                        uint8_t attr_count, os_corr_id_t corr_id);
 zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
                                 uint16_t cluster_id, uint16_t attr_id,
-                                uint16_t min_s, uint16_t max_s,
-                                os_corr_id_t corr_id);
+                                uint8_t attr_type, uint16_t min_s,
+                                uint16_t max_s, os_corr_id_t corr_id);
 zb_err_t zb_bind(zb_node_id_t node_id, uint8_t endpoint, uint16_t cluster_id,
                  os_corr_id_t corr_id);
 
