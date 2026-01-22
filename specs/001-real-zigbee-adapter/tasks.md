@@ -15,8 +15,8 @@
 
 **Purpose**: Project initialization and file structure
 
-- [ ] T001 Create `drivers/zigbee/zb_real.c` skeleton with includes and static state variables
-- [ ] T002 Update `drivers/zigbee/CMakeLists.txt` to conditionally compile zb_real.c for ESP32-C6 target
+- [X] T001 Create `drivers/zigbee/zb_real.c` skeleton with includes and static state variables
+- [X] T002 Update `drivers/zigbee/CMakeLists.txt` to conditionally compile zb_real.c for ESP32-C6 target
 
 ---
 
@@ -26,11 +26,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `zb_nwk_entry_t` address cache (64 slots) with lookup/insert/remove helpers in `drivers/zigbee/zb_real.c`
-- [ ] T004 Implement `zb_pending_cmd_t` correlation tracking (16 slots) with alloc/free/lookup by TSN in `drivers/zigbee/zb_real.c`
-- [ ] T005 Implement `zb_state_t` state machine (UNINITIALIZED→INITIALIZING→READY→ERROR) in `drivers/zigbee/zb_real.c`
-- [ ] T006 Register `esp_zb_zcl_command_send_status_handler_register()` callback stub in `drivers/zigbee/zb_real.c`
-- [ ] T007 Register `esp_zb_core_action_handler_register()` callback stub in `drivers/zigbee/zb_real.c`
+- [X] T003 Implement `zb_nwk_entry_t` address cache (64 slots) with lookup/insert/remove helpers in `drivers/zigbee/zb_real.c`
+- [X] T004 Implement `zb_pending_cmd_t` correlation tracking (16 slots) with alloc/free/lookup by TSN in `drivers/zigbee/zb_real.c`
+- [X] T005 Implement `zb_state_t` state machine (UNINITIALIZED→INITIALIZING→READY→ERROR) in `drivers/zigbee/zb_real.c`
+- [X] T006 Register `esp_zb_zcl_command_send_status_handler_register()` callback stub in `drivers/zigbee/zb_real.c`
+- [X] T007 Register `esp_zb_core_action_handler_register()` callback stub in `drivers/zigbee/zb_real.c`
 
 **Checkpoint**: Foundation ready — all data structures and callback registration in place
 
@@ -44,11 +44,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `zb_init()` — create Zigbee task, call `esp_zb_init()` with coordinator config in `drivers/zigbee/zb_real.c`
-- [ ] T009 [US1] Implement Zigbee task function — call `esp_zb_start(true)` then `esp_zb_stack_main_loop()` in `drivers/zigbee/zb_real.c`
-- [ ] T010 [US1] Implement `esp_zb_app_signal_handler()` — handle `ESP_ZB_BDB_SIGNAL_FORMATION`, emit `OS_EVENT_ZB_STACK_UP` in `drivers/zigbee/zb_real.c`
-- [ ] T011 [US1] Implement `zb_start_coordinator()` — validate state, return OK if already started in `drivers/zigbee/zb_real.c`
-- [ ] T012 [US1] Add formation error handling — emit `ZB_STACK_DOWN` on failure, transition to ERROR state in `drivers/zigbee/zb_real.c`
+- [X] T008 [US1] Implement `zb_init()` — create Zigbee task, call `esp_zb_init()` with coordinator config in `drivers/zigbee/zb_real.c`
+- [X] T009 [US1] Implement Zigbee task function — call `esp_zb_start(true)` then `esp_zb_stack_main_loop()` in `drivers/zigbee/zb_real.c`
+- [X] T010 [US1] Implement `esp_zb_app_signal_handler()` — handle `ESP_ZB_BDB_SIGNAL_FORMATION`, emit `OS_EVENT_ZB_STACK_UP` in `drivers/zigbee/zb_real.c`
+- [X] T011 [US1] Implement `zb_start_coordinator()` — validate state, return OK if already started in `drivers/zigbee/zb_real.c`
+- [X] T012 [US1] Add formation error handling — emit `ZB_STACK_DOWN` on failure, transition to ERROR state in `drivers/zigbee/zb_real.c`
 
 **Checkpoint**: Network forms on boot, `ZB_STACK_UP` emitted — US1 complete
 
@@ -62,9 +62,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Implement `zb_set_permit_join()` — acquire lock, call `esp_zb_bdb_open_network()`, release lock in `drivers/zigbee/zb_real.c`
-- [ ] T014 [US2] Handle `ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE` in signal handler — extract EUI64+NWK, update cache, emit `OS_EVENT_ZB_ANNOUNCE` in `drivers/zigbee/zb_real.c`
-- [ ] T015 [US2] Handle `ESP_ZB_COMMON_SIGNAL_DEVICE_JOINED` in signal handler — extract EUI64, update cache, emit `OS_EVENT_ZB_DEVICE_JOINED` in `drivers/zigbee/zb_real.c`
+- [X] T013 [US2] Implement `zb_set_permit_join()` — acquire lock, call `esp_zb_bdb_open_network()`, release lock in `drivers/zigbee/zb_real.c`
+- [X] T014 [US2] Handle `ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE` in signal handler — extract EUI64+NWK, update cache, emit `OS_EVENT_ZB_ANNOUNCE` in `drivers/zigbee/zb_real.c`
+- [X] T015 [US2] Handle `ESP_ZB_COMMON_SIGNAL_DEVICE_JOINED` in signal handler — extract EUI64, update cache, emit `OS_EVENT_ZB_DEVICE_JOINED` in `drivers/zigbee/zb_real.c`
 
 **Checkpoint**: Devices can join when permit join enabled, join events emitted — US2 complete
 
@@ -78,9 +78,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement `zb_send_onoff()` — lookup NWK from cache, allocate pending slot, acquire lock, call `esp_zb_zcl_on_off_cmd_req()` in `drivers/zigbee/zb_real.c`
-- [ ] T017 [US3] Implement send status callback body — lookup corr_id by TSN, emit `OS_EVENT_ZB_CMD_CONFIRM` or `OS_EVENT_ZB_CMD_ERROR` in `drivers/zigbee/zb_real.c`
-- [ ] T018 [P] [US3] Implement `zb_send_level()` — same pattern as onoff with `esp_zb_zcl_level_move_to_level_cmd_req()` in `drivers/zigbee/zb_real.c`
+- [X] T016 [US3] Implement `zb_send_onoff()` — lookup NWK from cache, allocate pending slot, acquire lock, call `esp_zb_zcl_on_off_cmd_req()` in `drivers/zigbee/zb_cmd.c`
+- [X] T017 [US3] Implement send status callback body — lookup corr_id by TSN, emit `OS_EVENT_ZB_CMD_CONFIRM` or `OS_EVENT_ZB_CMD_ERROR` in `drivers/zigbee/zb_real.c`
+- [X] T018 [P] [US3] Implement `zb_send_level()` — same pattern as onoff with `esp_zb_zcl_level_move_to_level_cmd_req()` in `drivers/zigbee/zb_cmd.c`
 
 **Checkpoint**: On/Off and Level commands work end-to-end — US3 complete
 
@@ -94,11 +94,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Implement core action callback body — handle `ESP_ZB_CORE_REPORT_ATTR_CB_ID`, build payload, emit `OS_EVENT_ZB_ATTR_REPORT` in `drivers/zigbee/zb_real.c`
-- [ ] T020 [US4] Handle attribute read response in core action callback — emit `OS_EVENT_ZB_ATTR_REPORT` for each attr in `drivers/zigbee/zb_real.c`
-- [ ] T021 [US4] Implement `zb_read_attrs()` — acquire lock, call `esp_zb_zcl_read_attr_cmd_req()` in `drivers/zigbee/zb_real.c`
-- [ ] T022 [P] [US4] Implement `zb_configure_reporting()` — acquire lock, call `esp_zb_zcl_config_report_cmd_req()` in `drivers/zigbee/zb_real.c`
-- [ ] T023 [P] [US4] Implement `zb_bind()` — acquire lock, call `esp_zb_zdo_bind_req()` in `drivers/zigbee/zb_real.c`
+- [X] T019 [US4] Implement core action callback body — handle `ESP_ZB_CORE_REPORT_ATTR_CB_ID`, build payload, emit `OS_EVENT_ZB_ATTR_REPORT` in `drivers/zigbee/zb_real.c`
+- [X] T020 [US4] Handle attribute read response in core action callback — emit `OS_EVENT_ZB_ATTR_REPORT` for each attr in `drivers/zigbee/zb_real.c`
+- [X] T021 [US4] Implement `zb_read_attrs()` — acquire lock, call `esp_zb_zcl_read_attr_cmd_req()` in `drivers/zigbee/zb_cmd.c`
+- [X] T022 [P] [US4] Implement `zb_configure_reporting()` — acquire lock, call `esp_zb_zcl_config_report_cmd_req()` in `drivers/zigbee/zb_cmd.c`
+- [X] T023 [P] [US4] Implement `zb_bind()` — acquire lock, call `esp_zb_zdo_bind_req()` in `drivers/zigbee/zb_cmd.c`
 
 **Checkpoint**: Attribute reports received and emitted as events — US4 complete
 
@@ -112,7 +112,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T024 [US5] Handle `ESP_ZB_ZDO_SIGNAL_LEAVE` in signal handler — extract EUI64, remove from cache, emit `OS_EVENT_ZB_DEVICE_LEFT` in `drivers/zigbee/zb_real.c`
+- [X] T024 [US5] Handle `ESP_ZB_ZDO_SIGNAL_LEAVE` in signal handler — extract EUI64, remove from cache, emit `OS_EVENT_ZB_DEVICE_LEFT` in `drivers/zigbee/zb_real.c`
 
 **Checkpoint**: Device leave detected and reported — US5 complete
 
@@ -122,10 +122,10 @@
 
 **Purpose**: Robustness, edge cases, validation
 
-- [ ] T025 Add event queue full handling — increment drop counter, log warning in `drivers/zigbee/zb_real.c`
-- [ ] T026 Add pending command timeout purge — check timestamps, emit timeout errors in `drivers/zigbee/zb_real.c`
-- [ ] T027 Verify `zb_real.c` is under 200 lines; if over, split into `zb_real.c` (lifecycle) + `zb_cmd.c` (commands)
-- [ ] T028 Run quickstart.md validation — build, flash, form network, join device, send command
+- [X] T025 Add event queue full handling — increment drop counter, log warning in `drivers/zigbee/zb_real.c`
+- [X] T026 Add pending command timeout purge — check timestamps, emit timeout errors in `drivers/zigbee/zb_real.c`
+- [X] T027 Verify `zb_real.c` is under 200 lines; if over, split into `zb_real.c` (lifecycle) + `zb_cmd.c` (commands)
+- [X] T028 Run quickstart.md validation — build, flash, form network, join device, send command
 - [ ] T029 Extend `tests/unit/test_zb_adapter.c` to cover zb_real.c contract compliance (event shapes match zb_fake.c)
 - [ ] T030 Capture performance metrics for SC-001..SC-004 — log timestamps for formation, join detection, command RTT, attr report latency; add assertions/thresholds in quickstart or test harness
 - [ ] T031 Add event drop/throughput observation for SC-005 — simulate 10 events/sec sustained, confirm no drops or log drop counter behavior
