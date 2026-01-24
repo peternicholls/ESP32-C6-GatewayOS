@@ -2,6 +2,7 @@
 
 **Input**: Design documents from `/specs/001-real-zigbee-adapter/`  
 **Prerequisites**: plan.md ✓, spec.md ✓, research.md ✓, data-model.md ✓, contracts/ ✓
+**Important**: This is a fully custom OS for the ESP32-C6. Read all docs before starting.
 
 ## Format: `[ID] [P?] [Story?] Description`
 
@@ -17,10 +18,10 @@
 
 **Purpose**: Project initialization and file structure
 
-- [ ] T001 Create `drivers/zigbee/zb_real.c` skeleton with includes, forward declarations, and empty function stubs for all 8 contract functions
-- [ ] T002 Create `drivers/zigbee/zb_cmd.c` skeleton with includes and forward declarations for command functions
-- [ ] T003 Update `drivers/zigbee/CMakeLists.txt` — add conditional: if `CONFIG_IDF_TARGET_ESP32C6`, compile `zb_real.c` + `zb_cmd.c`; else compile `zb_fake.c`
-- [ ] T004 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify compiles with stub implementations (functions return `OS_ERR_NOT_IMPLEMENTED`)
+- [x] T001 Create `drivers/zigbee/zb_real.c` skeleton with includes, forward declarations, and empty function stubs for all 8 contract functions
+- [x] T002 Create `drivers/zigbee/zb_cmd.c` skeleton with includes and forward declarations for command functions
+- [x] T003 Update `drivers/zigbee/CMakeLists.txt` — add conditional: if `CONFIG_IDF_TARGET_ESP32C6`, compile `zb_real.c` + `zb_cmd.c`; else compile `zb_fake.c`
+- [x] T004 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify compiles with stub implementations (functions return `OS_ERR_NOT_IMPLEMENTED`)
 
 ---
 
