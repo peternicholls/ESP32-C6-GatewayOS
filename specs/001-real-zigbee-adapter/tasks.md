@@ -33,32 +33,32 @@
 
 ### Address Cache (EUI64 ↔ NWK mapping)
 
-- [ ] T005 Define `zb_nwk_entry_t` struct in `zb_real.c`: `{eui64, nwk_addr, last_seen_ms}` (12 bytes)
-- [ ] T006 Declare static array `s_nwk_cache[64]` and `s_nwk_count` in `zb_real.c`
-- [ ] T007 Implement `nwk_cache_insert(eui64, nwk)` — find existing or add new, return pointer
-- [ ] T008 Implement `nwk_cache_lookup_by_eui64(eui64)` — return entry or NULL
-- [ ] T009 Implement `nwk_cache_remove(eui64)` — mark slot empty, return bool
+- [x] T005 Define `zb_nwk_entry_t` struct in `zb_real.c`: `{eui64, nwk_addr, last_seen_ms}` (12 bytes)
+- [x] T006 Declare static array `s_nwk_cache[64]` and `s_nwk_count` in `zb_real.c`
+- [x] T007 Implement `nwk_cache_insert(eui64, nwk)` — find existing or add new, return pointer
+- [x] T008 Implement `nwk_cache_lookup_by_eui64(eui64)` — return entry or NULL
+- [x] T009 Implement `nwk_cache_remove(eui64)` — mark slot empty, return bool
 
 ### Correlation Tracking (command → response matching)
 
-- [ ] T010 Define `zb_pending_cmd_t` struct in `zb_real.c`: `{tsn, corr_id, timestamp_ms, in_use}` (16 bytes)
-- [ ] T011 Declare static array `s_pending_cmds[16]` in `zb_real.c`
-- [ ] T012 Implement `pending_cmd_alloc(corr_id)` — find free slot, set tsn=0 initially, return pointer
-- [ ] T013 Implement `pending_cmd_set_tsn(slot, tsn)` — called after esp_zb send returns TSN
-- [ ] T014 Implement `pending_cmd_lookup_by_tsn(tsn)` — return entry or NULL
-- [ ] T015 Implement `pending_cmd_free(slot)` — mark slot unused
+- [x] T010 Define `zb_pending_cmd_t` struct in `zb_real.c`: `{tsn, corr_id, timestamp_ms, in_use}` (16 bytes)
+- [x] T011 Declare static array `s_pending_cmds[16]` in `zb_real.c`
+- [x] T012 Implement `pending_cmd_alloc(corr_id)` — find free slot, set tsn=0 initially, return pointer
+- [x] T013 Implement `pending_cmd_set_tsn(slot, tsn)` — called after esp_zb send returns TSN
+- [x] T014 Implement `pending_cmd_lookup_by_tsn(tsn)` — return entry or NULL
+- [x] T015 Implement `pending_cmd_free(slot)` — mark slot unused
 
 ### State Machine
 
-- [ ] T016 Define `zb_state_t` enum: `{ZB_STATE_UNINITIALIZED, ZB_STATE_INITIALIZING, ZB_STATE_READY, ZB_STATE_ERROR}`
-- [ ] T017 Declare static `s_zb_state` initialized to `ZB_STATE_UNINITIALIZED`
-- [ ] T018 Implement `zb_state_transition(new_state)` — validate transition, log, update state
+- [x] T016 Define `zb_state_t` enum: `{ZB_STATE_UNINITIALIZED, ZB_STATE_INITIALIZING, ZB_STATE_READY, ZB_STATE_ERROR}`
+- [x] T017 Declare static `s_zb_state` initialized to `ZB_STATE_UNINITIALIZED`
+- [x] T018 Implement `zb_state_transition(new_state)` — validate transition, log, update state
 
 ### Callback Registration Stubs
 
-- [ ] T019 Add empty `zb_send_status_cb()` function — logs "send status cb called" and returns
-- [ ] T020 Add empty `zb_core_action_cb()` function — logs "core action cb called" and returns `ESP_OK`
-- [ ] T021 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify all data structures compile, no warnings
+- [x] T019 Add empty `zb_send_status_cb()` function — logs "send status cb called" and returns
+- [x] T020 Add empty `zb_core_action_cb()` function — logs "core action cb called" and returns `ESP_OK`
+- [x] T021 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify all data structures compile, no warnings
 
 ---
 
