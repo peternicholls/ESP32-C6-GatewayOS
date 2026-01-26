@@ -70,8 +70,8 @@
 
 ### Zigbee Task & Initialization
 
-- [ ] T022 [US1] Implement `zb_task()` function — calls `esp_zb_start(false)` then `esp_zb_stack_main_loop()` (never returns)
-- [ ] T023 [US1] Implement `zb_init()` body:
+- [x] T022 [US1] Implement `zb_task()` function — calls `esp_zb_start(false)` then `esp_zb_stack_main_loop()` (never returns)
+- [x] T023 [US1] Implement `zb_init()` body:
   - Validate state is UNINITIALIZED
   - Call `esp_zb_platform_config()` with radio/host config
   - Call `esp_zb_init()` with coordinator config (install code disabled, primary channel mask)
@@ -80,20 +80,20 @@
   - Create task with `xTaskCreate(zb_task, "zigbee", 4096, NULL, 5, NULL)`
   - Transition state to INITIALIZING
   - Return `OS_OK`
-- [ ] T024 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify init compiles
+- [x] T024 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify init compiles
 
 ### Signal Handler (Network Formation)
 
-- [ ] T025 [US1] Implement `esp_zb_app_signal_handler()` skeleton — switch on `sig_type`
-- [ ] T026 [US1] Handle `ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP` — call `esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION)`
-- [ ] T027 [US1] Handle `ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START` / `ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT`:
+- [x] T025 [US1] Implement `esp_zb_app_signal_handler()` skeleton — switch on `sig_type`
+- [x] T026 [US1] Handle `ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP` — call `esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION)`
+- [x] T027 [US1] Handle `ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START` / `ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT`:
   - If status OK, call `esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_FORMATION)`
   - If status not OK, log error, transition to ERROR state
-- [ ] T028 [US1] Handle `ESP_ZB_BDB_SIGNAL_FORMATION`:
+- [x] T028 [US1] Handle `ESP_ZB_BDB_SIGNAL_FORMATION`:
   - If status OK: log PAN ID + channel, transition to READY, emit `OS_EVENT_ZB_STACK_UP`
   - If status not OK: log error, transition to ERROR state
-- [ ] T029 [US1] Implement `zb_start_coordinator()` — return `OS_OK` if state is READY or INITIALIZING, else `OS_ERR_INVALID_STATE`
-- [ ] T030 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify signal handler compiles
+- [x] T029 [US1] Implement `zb_start_coordinator()` — return `OS_OK` if state is READY or INITIALIZING, else `OS_ERR_INVALID_STATE`
+- [x] T030 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify signal handler compiles
 - [ ] T031 🚀 **FLASH CHECKPOINT**: Flash to ESP32-C6, boot, verify in serial monitor:
   - Log: "Network formed, PAN ID: 0xXXXX, Channel: XX"
   - Event: `OS_EVENT_ZB_STACK_UP` emitted

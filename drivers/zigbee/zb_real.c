@@ -215,7 +215,7 @@ static void pending_cmd_free(zb_pending_cmd_t *slot) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * Contract Functions - Lifecycle
+ * Contract Functions - Lifecycle (T023)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -225,8 +225,36 @@ zb_err_t zb_init(void) {
   }
 
   LOG_I(ZB_MODULE, "Initializing Zigbee stack (real)");
-  /* TODO: Implement in Phase 3 */
-  return OS_ERR_NOT_READY;
+
+  /* Platform config for ESP32-C6 native radio */
+  esp_zb_platform_config_t platform_cfg = {
+      .radio_config = {.radio_mode = ZB_RADIO_MODE_NATIVE},
+      .host_config = {.host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE},
+  };
+  ESP_ERROR_CHECK(esp_zb_platform_config(&platform_cfg));
+
+  /* Coordinator config */
+  esp_zb_cfg_t zb_cfg = {
+      .esp_zb_role = ESP_ZB_DEVICE_TYPE_COORDINATOR,
+      .install_code_policy = false,
+      .nwk_cfg.zczr_cfg.max_children = ZB_MAX_DEVICES,
+  };
+  esp_zb_init(&zb_cfg);
+
+  /* Register callbacks */
+  esp_zb_core_action_handler_register(zb_core_action_cb);
+  esp_zb_zcl_command_send_status_handler_register(zb_send_status_cb);
+
+  /* Create Zigbee task */
+  BaseType_t ret = xTaskCreate(zb_task, "zigbee", ZB_TASK_STACK_SIZE, NULL,
+                               ZB_TASK_PRIORITY, NULL);
+  if (ret != pdPASS) {
+    LOG_E(ZB_MODULE, "Failed to create Zigbee task");
+    return OS_ERR_NO_MEM;
+  }
+
+  zb_state_transition(ZB_STATE_INITIALIZING);
+  return OS_OK;
 }
 
 zb_err_t zb_start_coordinator(void) {
@@ -258,15 +286,15 @@ zb_err_t zb_set_permit_join(uint16_t seconds) {
  * zb_bind are implemented in zb_cmd.c */
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * Internal - Zigbee Task
+ * Internal - Zigbee Task (T022)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 static void zb_task(void *arg) {
   (void)arg;
-  LOG_I(ZB_MODULE, "Zigbee task starting");
-  /* TODO: Implement in Phase 3 */
-  vTaskDelete(NULL);
+  LOG_I(ZB_MODULE, "Zigbee task started");
+  esp_zb_start(false); /* No autostart - we handle commissioning via signals */
+  esp_zb_stack_main_loop(); /* Never returns */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -289,11 +317,50 @@ static esp_err_t zb_core_action_cb(esp_zb_core_action_callback_id_t callback_id,
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * Signal Handler (called by ZBOSS stack)
+ * Signal Handler (called by ZBOSS stack) - T025-T028
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
-  LOG_D(ZB_MODULE, "Signal handler called");
-  /* TODO: Implement in Phase 3 */
+  uint32_t *p_sig = signal->p_app_signal;
+  esp_err_t status = signal->esp_err_status;
+  esp_zb_app_signal_type_t sig_type = *p_sig;
+
+  switch (sig_type) {
+  case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
+    /* T026: Stack framework initialized, start BDB commissioning */
+    LOG_I(ZB_MODULE, "Stack initialized, starting commissioning");
+    esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION);
+    break;
+
+  case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
+  case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    /* T027: Device initialized or rebooted, start network formation */
+    if (status == ESP_OK) {
+      LOG_I(ZB_MODULE, "Device ready, starting network formation");
+      esp_zb_bdb_start_top_level_commissioning(
+          ESP_ZB_BDB_MODE_NETWORK_FORMATION);
+    } else {
+      LOG_E(ZB_MODULE, "Device init failed: %d", status);
+      zb_state_transition(ZB_STATE_ERROR);
+    }
+    break;
+
+  case ESP_ZB_BDB_SIGNAL_FORMATION:
+    /* T028: Network formation complete */
+    if (status == ESP_OK) {
+      LOG_I(ZB_MODULE, "Network formed, PAN ID: 0x%04X, Channel: %d",
+            esp_zb_get_pan_id(), esp_zb_get_current_channel());
+      zb_state_transition(ZB_STATE_READY);
+      os_event_emit(OS_EVENT_ZB_STACK_UP, NULL, 0);
+    } else {
+      LOG_E(ZB_MODULE, "Network formation failed: %d", status);
+      zb_state_transition(ZB_STATE_ERROR);
+    }
+    break;
+
+  default:
+    LOG_D(ZB_MODULE, "Unhandled signal: 0x%02x, status: %d", sig_type, status);
+    break;
+  }
 }
