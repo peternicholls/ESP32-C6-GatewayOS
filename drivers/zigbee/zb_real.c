@@ -374,7 +374,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
       zb_state_transition(ZB_STATE_READY);
       os_event_emit(OS_EVENT_ZB_STACK_UP, NULL, 0);
       /* TODO: For production, disable auto permit-join or gate behind config.
-       * Auto-enabling is a security risk - devices can join without user action. */
+       * Auto-enabling is a security risk - devices can join without user
+       * action. */
       esp_zb_bdb_open_network(180);
       LOG_I(ZB_MODULE, "[DEV] Permit join enabled for 180 seconds");
     } else {

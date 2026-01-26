@@ -3,9 +3,9 @@
 # ESP32 targets: build, flash, monitor, flash-monitor
 # Host targets: all, test, run, clean
 
-# ESP32 serial port (override with: make flash ESP_PORT=/dev/tty.usbmodem...)
-# Default: /dev/ttyUSB0 (Linux). macOS users: set ESP_PORT to your device.
-ESP_PORT ?= /dev/ttyUSB0
+# ESP32 serial port - override with: make flash PORT=/dev/tty.usbmodem...
+# Find your port: ls /dev/tty.usb* (macOS) or ls /dev/ttyUSB* (Linux)
+PORT ?= /dev/tty.usbmodem5AAF1845231
 
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -std=c11 -g -O0
@@ -71,21 +71,18 @@ TEST_TARGET = build/test_os
 # Libraries
 LIBS = -lpthread
 
-# Serial port (override with: make monitor PORT=/dev/ttyUSB0)
-PORT ?= /dev/ttyUSB0
-
 # ESP32 targets: idf.py convenience wrappers
-.PHONY: all clean test run esp flash monitor console help
+.PHONY: all clean test run esp build flash monitor console help
 
 # ESP32 targets
 build:
 	idf.py build
 
 flash:
-	idf.py -p $(ESP_PORT) flash
+	idf.py -p $(PORT) flash
 
 monitor:
-	idf.py -p $(ESP_PORT) monitor
+	idf.py -p $(PORT) monitor
 
 flash-monitor: flash monitor
 
@@ -113,20 +110,8 @@ help:
 	@echo "Options:"
 	@echo "  PORT=/dev/xxx  - Override serial port (default: $(PORT))"
 
-# ESP32 targets (convenience wrappers for idf.py)
-# Note: Requires ESP-IDF environment to be sourced before running these targets
-
-esp:
-	idf.py build
-
-flash:
-	idf.py -p $(PORT) flash
-
-monitor:
-	idf.py -p $(PORT) monitor
-
-console: flash
-	idf.py -p $(PORT) monitor
+# ESP32 convenience alias
+esp: build
 
 $(MAIN_TARGET): $(OS_OBJS) $(SVC_OBJS) $(ADAPT_OBJS) $(DRV_OBJS) $(APP_OBJS) $(MAIN_OBJS)
 	@mkdir -p build
