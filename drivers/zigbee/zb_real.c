@@ -14,11 +14,13 @@
 #include "os_fibre.h"
 #include "os_log.h"
 #include "zb_adapter.h"
+#include "zb_internal.h"
 
 #include "esp_zigbee_core.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include <inttypes.h>
 #include <string.h>
 
 #define ZB_MODULE "ZB_REAL"
@@ -208,7 +210,7 @@ static zb_pending_cmd_t *pending_cmd_lookup_by_tsn(uint8_t tsn) {
   return NULL;
 }
 
-static void pending_cmd_free(zb_pending_cmd_t *slot) {
+static void __attribute__((unused)) pending_cmd_free(zb_pending_cmd_t *slot) {
   if (slot) {
     slot->in_use = false;
   }
@@ -219,7 +221,7 @@ static void pending_cmd_free(zb_pending_cmd_t *slot) {
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-zb_err_t zb_init(void) {
+zba_err_t zba_init(void) {
   if (s_zb_state != ZB_STATE_UNINITIALIZED) {
     return OS_ERR_ALREADY_EXISTS;
   }
@@ -257,7 +259,7 @@ zb_err_t zb_init(void) {
   return OS_OK;
 }
 
-zb_err_t zb_start_coordinator(void) {
+zba_err_t zba_start_coordinator(void) {
   if (s_zb_state == ZB_STATE_UNINITIALIZED) {
     return OS_ERR_NOT_INITIALIZED;
   }
@@ -267,14 +269,16 @@ zb_err_t zb_start_coordinator(void) {
   return OS_ERR_NOT_READY;
 }
 
-zb_err_t zb_set_permit_join(uint16_t seconds) {
+zba_err_t zba_set_permit_join(uint16_t seconds) {
   if (s_zb_state != ZB_STATE_READY) {
     return OS_ERR_NOT_READY;
   }
 
   LOG_I(ZB_MODULE, "Permit join for %u seconds", seconds);
-  /* TODO: Implement in Phase 4 */
-  return OS_ERR_NOT_READY;
+  esp_zb_lock_acquire(portMAX_DELAY);
+  esp_zb_bdb_open_network(seconds);
+  esp_zb_lock_release();
+  return OS_OK;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -304,9 +308,25 @@ static void zb_task(void *arg) {
 
 static void
 zb_send_status_cb(esp_zb_zcl_command_send_status_message_t message) {
-  LOG_D(ZB_MODULE, "send status cb called, tsn=%u status=%d", message.tsn,
+  LOG_D(ZB_MODULE, "send status cb: tsn=%u status=%d", message.tsn,
         message.status);
-  /* TODO: Implement in Phase 5 */
+  /* Look up pending command by TSN */
+  zb_pending_cmd_t *slot = pending_cmd_lookup_by_tsn(message.tsn);
+  if (!slot) {
+    LOG_W(ZB_MODULE, "No pending cmd for TSN %u", message.tsn);
+    return;
+  }
+  /* Emit appropriate event */
+  if (message.status == ESP_ZB_ZCL_STATUS_SUCCESS) {
+    os_event_emit(OS_EVENT_ZB_CMD_CONFIRM, &slot->corr_id,
+                  sizeof(slot->corr_id));
+    LOG_I(ZB_MODULE, "Command confirmed, corr_id=%" PRIu32, slot->corr_id);
+  } else {
+    os_event_emit(OS_EVENT_ZB_CMD_ERROR, &slot->corr_id, sizeof(slot->corr_id));
+    LOG_W(ZB_MODULE, "Command failed, corr_id=%" PRIu32 " status=%d",
+          slot->corr_id, message.status);
+  }
+  pending_cmd_free(slot);
 }
 
 static esp_err_t zb_core_action_cb(esp_zb_core_action_callback_id_t callback_id,
@@ -353,14 +373,56 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
             esp_zb_get_pan_id(), esp_zb_get_current_channel());
       zb_state_transition(ZB_STATE_READY);
       os_event_emit(OS_EVENT_ZB_STACK_UP, NULL, 0);
+      /* Auto-enable permit join for development */
+      esp_zb_bdb_open_network(180);
+      LOG_I(ZB_MODULE, "Permit join enabled for 180 seconds");
     } else {
       LOG_E(ZB_MODULE, "Network formation failed: %d", status);
       zb_state_transition(ZB_STATE_ERROR);
     }
     break;
 
+  case ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE: {
+    /* T033: Device announcement - new device joined */
+    esp_zb_zdo_signal_device_annce_params_t *dev =
+        (esp_zb_zdo_signal_device_annce_params_t *)esp_zb_app_signal_get_params(
+            signal->p_app_signal);
+    os_eui64_t eui64 = 0;
+    memcpy(&eui64, dev->ieee_addr, sizeof(os_eui64_t));
+    LOG_I(ZB_MODULE, "Device joined: " OS_EUI64_FMT ", NWK: 0x%04X",
+          OS_EUI64_ARG(eui64), dev->device_short_addr);
+    nwk_cache_insert(eui64, dev->device_short_addr);
+    /* Emit device joined event */
+    os_event_emit(OS_EVENT_ZB_DEVICE_JOINED, &eui64, sizeof(eui64));
+    break;
+  }
+
   default:
     LOG_D(ZB_MODULE, "Unhandled signal: 0x%02x, status: %d", sig_type, status);
     break;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Internal API (exposed via zb_internal.h for zb_cmd.c)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+bool zb_is_ready(void) { return s_zb_state == ZB_STATE_READY; }
+
+uint16_t zb_lookup_nwk(os_eui64_t eui64) {
+  zb_nwk_entry_t *entry = nwk_cache_lookup_by_eui64(eui64);
+  return entry ? entry->nwk_addr : 0xFFFF;
+}
+
+zb_pending_handle_t zb_pending_alloc(os_corr_id_t corr_id) {
+  return (zb_pending_handle_t)pending_cmd_alloc(corr_id);
+}
+
+void zb_pending_set_tsn(zb_pending_handle_t slot, uint8_t tsn) {
+  pending_cmd_set_tsn((zb_pending_cmd_t *)slot, tsn);
+}
+
+void zb_pending_free(zb_pending_handle_t slot) {
+  pending_cmd_free((zb_pending_cmd_t *)slot);
 }

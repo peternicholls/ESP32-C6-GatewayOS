@@ -18,12 +18,12 @@ static os_corr_id_t ensure_corr_id(os_corr_id_t corr_id) {
   return corr_id;
 }
 
-zb_err_t zb_init(void) {
+zba_err_t zba_init(void) {
   LOG_I(ZB_MODULE, "Zigbee adapter initialized (fake)");
   return OS_OK;
 }
 
-zb_err_t zb_start_coordinator(void) {
+zba_err_t zba_start_coordinator(void) {
   os_event_t event = {0};
   event.type = OS_EVENT_ZB_STACK_UP;
   event.timestamp = os_now_ticks();
@@ -31,14 +31,14 @@ zb_err_t zb_start_coordinator(void) {
   return os_event_publish(&event);
 }
 
-zb_err_t zb_set_permit_join(uint16_t seconds) {
+zba_err_t zba_set_permit_join(uint16_t seconds) {
   LOG_I(ZB_MODULE, "Permit join for %" PRIu16 " seconds (fake)", seconds);
   return OS_OK;
 }
 
-zb_err_t zb_send_onoff(zb_node_id_t node_id, uint8_t endpoint, bool on,
-                       os_corr_id_t corr_id) {
-  zb_cmd_confirm_t payload = {
+zba_err_t zba_send_onoff(zba_node_id_t node_id, uint8_t endpoint, bool on,
+                         os_corr_id_t corr_id) {
+  zba_cmd_confirm_t payload = {
       .node_id = node_id,
       .endpoint = endpoint,
       .cluster_id = 0x0006,
@@ -55,11 +55,11 @@ zb_err_t zb_send_onoff(zb_node_id_t node_id, uint8_t endpoint, bool on,
   return os_event_publish(&event);
 }
 
-zb_err_t zb_send_level(zb_node_id_t node_id, uint8_t endpoint,
-                       uint8_t level_0_100, uint16_t transition_ms,
-                       os_corr_id_t corr_id) {
+zba_err_t zba_send_level(zba_node_id_t node_id, uint8_t endpoint,
+                         uint8_t level_0_100, uint16_t transition_ms,
+                         os_corr_id_t corr_id) {
   (void)transition_ms;
-  zb_cmd_confirm_t payload = {
+  zba_cmd_confirm_t payload = {
       .node_id = node_id,
       .endpoint = endpoint,
       .cluster_id = 0x0008,
@@ -76,12 +76,12 @@ zb_err_t zb_send_level(zb_node_id_t node_id, uint8_t endpoint,
   return os_event_publish(&event);
 }
 
-zb_err_t zb_read_attrs(zb_node_id_t node_id, uint8_t endpoint,
-                       uint16_t cluster_id, const uint16_t *attr_ids,
-                       size_t attr_count, os_corr_id_t corr_id) {
+zba_err_t zba_read_attrs(zba_node_id_t node_id, uint8_t endpoint,
+                         uint16_t cluster_id, const uint16_t *attr_ids,
+                         size_t attr_count, os_corr_id_t corr_id) {
   (void)attr_ids;
   (void)attr_count;
-  zb_cmd_confirm_t payload = {
+  zba_cmd_confirm_t payload = {
       .node_id = node_id,
       .endpoint = endpoint,
       .cluster_id = cluster_id,
@@ -98,10 +98,10 @@ zb_err_t zb_read_attrs(zb_node_id_t node_id, uint8_t endpoint,
   return os_event_publish(&event);
 }
 
-zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
-                                uint16_t cluster_id, uint16_t attr_id,
-                                uint16_t min_s, uint16_t max_s,
-                                uint32_t change) {
+zba_err_t zba_configure_reporting(zba_node_id_t node_id, uint8_t endpoint,
+                                  uint16_t cluster_id, uint16_t attr_id,
+                                  uint16_t min_s, uint16_t max_s,
+                                  uint32_t change) {
   (void)node_id;
   (void)endpoint;
   (void)cluster_id;
@@ -113,8 +113,8 @@ zb_err_t zb_configure_reporting(zb_node_id_t node_id, uint8_t endpoint,
   return OS_OK;
 }
 
-zb_err_t zb_bind(zb_node_id_t node_id, uint8_t endpoint, uint16_t cluster_id,
-                 uint64_t dst) {
+zba_err_t zba_bind(zba_node_id_t node_id, uint8_t endpoint, uint16_t cluster_id,
+                   uint64_t dst) {
   (void)node_id;
   (void)endpoint;
   (void)cluster_id;

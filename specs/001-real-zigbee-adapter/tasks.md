@@ -94,7 +94,7 @@
   - If status not OK: log error, transition to ERROR state
 - [x] T029 [US1] Implement `zb_start_coordinator()` — return `OS_OK` if state is READY or INITIALIZING, else `OS_ERR_INVALID_STATE`
 - [x] T030 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify signal handler compiles
-- [ ] T031 🚀 **FLASH CHECKPOINT**: Flash to ESP32-C6, boot, verify in serial monitor:
+- [x] T031 🚀 **FLASH CHECKPOINT**: Flash to ESP32-C6, boot, verify in serial monitor:
   - Log: "Network formed, PAN ID: 0xXXXX, Channel: XX"
   - Event: `OS_EVENT_ZB_STACK_UP` emitted
   - Task: `ps` shows zigbee task running (if shell available)
@@ -111,7 +111,7 @@
 
 ### Permit Join
 
-- [ ] T032 [US2] Implement `zb_set_permit_join(seconds)`:
+- [x] T032 [US2] Implement `zb_set_permit_join(seconds)`:
   - Validate state is READY
   - Acquire `esp_zb_lock_acquire(portMAX_DELAY)`
   - Call `esp_zb_bdb_open_network(seconds)`
@@ -120,19 +120,19 @@
 
 ### Device Join Signal Handling
 
-- [ ] T033 [US2] Handle `ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE` in signal handler:
+- [x] T033 [US2] Handle `ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE` in signal handler:
   - Extract `esp_zb_zdo_signal_device_annce_params_t` from signal
   - Get EUI64 via `esp_zb_address_short_to_ieee(nwk_addr, &ieee_addr)`
   - Call `nwk_cache_insert(eui64, nwk_addr)`
   - Build event payload with EUI64 + NWK
   - Emit `OS_EVENT_ZB_ANNOUNCE`
-- [ ] T034 [US2] Handle join indication (device association):
+- [x] T034 [US2] Handle join indication (device association):
   - On new device association, extract EUI64
   - Call `nwk_cache_insert(eui64, nwk_addr)`
   - Emit `OS_EVENT_ZB_DEVICE_JOINED` with EUI64
 
-- [ ] T035 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify permit join compiles
-- [ ] T036 🚀 **FLASH CHECKPOINT**: Flash, test with real Zigbee device:
+- [x] T035 🔨 **BUILD CHECKPOINT**: Run `idf.py build` — verify permit join compiles
+- [x] T036 🚀 **FLASH CHECKPOINT**: Flash, test with real Zigbee device:
   - Call `zb_set_permit_join(180)` (via shell or test code)
   - Put test device in pairing mode
   - Verify log: "Device joined: EUI64=XX:XX:XX:XX:XX:XX:XX:XX"

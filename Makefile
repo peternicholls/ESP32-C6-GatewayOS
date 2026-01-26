@@ -67,9 +67,46 @@ TEST_TARGET = build/test_os
 # Libraries
 LIBS = -lpthread
 
-.PHONY: all clean test run
+# Serial port (override with: make monitor PORT=/dev/ttyUSB0)
+PORT ?= /dev/tty.usbmodem5AAF1845231
+
+.PHONY: all clean test run esp flash monitor console help
 
 all: $(MAIN_TARGET)
+
+help:
+	@echo "ESP32-C6 GatewayOS Build System"
+	@echo ""
+	@echo "ESP32 targets:"
+	@echo "  make esp       - Build ESP32 firmware"
+	@echo "  make flash     - Flash to device"
+	@echo "  make monitor   - Start serial console"
+	@echo "  make console   - Flash + start console"
+	@echo ""
+	@echo "Host targets:"
+	@echo "  make all       - Build host binary"
+	@echo "  make test      - Run unit tests"
+	@echo "  make run       - Run host binary"
+	@echo "  make clean     - Remove build artifacts"
+	@echo ""
+	@echo "Options:"
+	@echo "  PORT=/dev/xxx  - Override serial port (default: $(PORT))"
+
+# ESP32 targets (convenience wrappers for idf.py)
+# Note: Requires ESP-IDF to be installed at ~/.espressif/v5.5.2/esp-idf
+IDF_EXPORT = . ~/.espressif/v5.5.2/esp-idf/export.sh > /dev/null 2>&1
+
+esp:
+	@$(IDF_EXPORT) && idf.py build
+
+flash:
+	@$(IDF_EXPORT) && idf.py -p $(PORT) flash
+
+monitor:
+	@$(IDF_EXPORT) && idf.py -p $(PORT) monitor
+
+console: flash
+	@$(IDF_EXPORT) && idf.py -p $(PORT) monitor
 
 $(MAIN_TARGET): $(OS_OBJS) $(SVC_OBJS) $(ADAPT_OBJS) $(DRV_OBJS) $(APP_OBJS) $(MAIN_OBJS)
 	@mkdir -p build

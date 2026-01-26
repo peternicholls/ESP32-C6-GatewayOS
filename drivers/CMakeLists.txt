@@ -5,6 +5,7 @@ if(CONFIG_IDF_TARGET_ESP32C6)
     set(ZIGBEE_SRCS
         "zigbee/zb_real.c"
         "zigbee/zb_cmd.c"
+        "zigbee/zb_shell.c"
     )
     idf_component_register(
         SRCS
